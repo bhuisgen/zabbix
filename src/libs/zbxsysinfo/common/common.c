@@ -29,7 +29,7 @@
 #include "zbxexec.h"
 
 #if !defined(_WINDOWS)
-#	define VFS_TEST_FILE "/etc/passwd"
+#	define VFS_TEST_FILE ROOTFS "/etc/passwd"
 #	define VFS_TEST_REGEXP "root"
 #else
 #	define VFS_TEST_FILE "c:\\windows\\win.ini"

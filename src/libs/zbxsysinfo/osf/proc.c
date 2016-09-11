@@ -75,15 +75,15 @@ int	PROC_MEM(AGENT_REQUEST *request, AGENT_RESULT *result)
 	if (1 == invalid_user)	/* handle 0 for non-existent user after all parameters have been parsed and validated */
 		goto out;
 
-	if (NULL == (dir = opendir("/proc")))
+	if (NULL == (dir = opendir(ROOTFS "/proc")))
 	{
-		SET_MSG_RESULT(result, zbx_dsprintf(NULL, "Cannot open /proc: %s", zbx_strerror(errno)));
+		SET_MSG_RESULT(result, zbx_dsprintf(NULL, "Cannot open %s: %s", ROOTFS "/proc", zbx_strerror(errno)));
 		return SYSINFO_RET_FAIL;
 	}
 
 	while (NULL != (entries = readdir(dir)))
 	{
-		strscpy(filename, "/proc/");
+		strscpy(filename, ROOTFS "/proc/");
 		zbx_strlcat(filename, entries->d_name, MAX_STRING_LEN);
 
 		if (0 == zbx_stat(filename, &buf))
@@ -199,15 +199,15 @@ int	PROC_NUM(AGENT_REQUEST *request, AGENT_RESULT *result)
 	if (1 == invalid_user)	/* handle 0 for non-existent user after all parameters have been parsed and validated */
 		goto out;
 
-	if (NULL == (dir = opendir("/proc")))
+	if (NULL == (dir = opendir(ROOTFS "/proc")))
 	{
-		SET_MSG_RESULT(result, zbx_dsprintf(NULL, "Cannot open /proc: %s", zbx_strerror(errno)));
+		SET_MSG_RESULT(result, zbx_dsprintf(NULL, "Cannot open %s: %s", ROOTFS "/proc", zbx_strerror(errno)));
 		return SYSINFO_RET_FAIL;
 	}
 
 	while (NULL != (entries = readdir(dir)))
 	{
-		strscpy(filename, "/proc/");
+		strscpy(filename, ROOTFS "/proc/");
 		zbx_strlcat(filename, entries->d_name,MAX_STRING_LEN);
 
 		if (0 == zbx_stat(filename, &buf))

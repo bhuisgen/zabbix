@@ -211,9 +211,9 @@ static int	get_net_stat(const char *if_name, net_stat_t *result, char **error)
 		return SYSINFO_RET_FAIL;
 	}
 
-	if (NULL == (f = fopen("/proc/net/dev", "r")))
+	if (NULL == (f = fopen(ROOTFS "/proc/net/dev", "r")))
 	{
-		*error = zbx_dsprintf(NULL, "Cannot open /proc/net/dev: %s", zbx_strerror(errno));
+		*error = zbx_dsprintf(NULL, "Cannot open %s: %s", ROOTFS "/proc/net/dev", zbx_strerror(errno));
 		return SYSINFO_RET_FAIL;
 	}
 
@@ -251,7 +251,7 @@ static int	get_net_stat(const char *if_name, net_stat_t *result, char **error)
 
 	if (SYSINFO_RET_FAIL == ret)
 	{
-		*error = zbx_strdup(NULL, "Cannot find information for this network interface in /proc/net/dev.");
+		*error = zbx_dsprintf(NULL, "Cannot find information for this network interface in %s.", ROOTFS "/proc/net/dev");
 		return SYSINFO_RET_FAIL;
 	}
 
@@ -527,9 +527,9 @@ int	NET_IF_DISCOVERY(AGENT_REQUEST *request, AGENT_RESULT *result)
 	FILE		*f;
 	struct zbx_json	j;
 
-	if (NULL == (f = fopen("/proc/net/dev", "r")))
+	if (NULL == (f = fopen(ROOTFS "/proc/net/dev", "r")))
 	{
-		SET_MSG_RESULT(result, zbx_dsprintf(NULL, "Cannot open /proc/net/dev: %s", zbx_strerror(errno)));
+		SET_MSG_RESULT(result, zbx_dsprintf(NULL, "Cannot open %s: %s", ROOTFS "/proc/net/dev", zbx_strerror(errno)));
 		return SYSINFO_RET_FAIL;
 	}
 
@@ -628,11 +628,11 @@ int	NET_TCP_LISTEN(AGENT_REQUEST *request, AGENT_RESULT *result)
 		}
 
 		zabbix_log(LOG_LEVEL_DEBUG, "netlink interface error: %s", error);
-		zabbix_log(LOG_LEVEL_DEBUG, "falling back on reading /proc/net/tcp...");
+		zabbix_log(LOG_LEVEL_DEBUG, "falling back on reading %s...", ROOTFS "/proc/net/tcp");
 #endif
 		buffer = zbx_malloc(NULL, buffer_alloc);
 
-		if (0 < (n = proc_read_tcp_listen("/proc/net/tcp", &buffer, &buffer_alloc)))
+		if (0 < (n = proc_read_tcp_listen(ROOTFS "/proc/net/tcp", &buffer, &buffer_alloc)))
 		{
 			ret = SYSINFO_RET_OK;
 
@@ -645,7 +645,7 @@ int	NET_TCP_LISTEN(AGENT_REQUEST *request, AGENT_RESULT *result)
 			}
 		}
 
-		if (0 < (n = proc_read_tcp_listen("/proc/net/tcp6", &buffer, &buffer_alloc)))
+		if (0 < (n = proc_read_tcp_listen(ROOTFS "/proc/net/tcp6", &buffer, &buffer_alloc)))
 		{
 			ret = SYSINFO_RET_OK;
 
@@ -688,7 +688,7 @@ int	NET_UDP_LISTEN(AGENT_REQUEST *request, AGENT_RESULT *result)
 
 	buffer = zbx_malloc(NULL, buffer_alloc);
 
-	if (0 < (n = proc_read_file("/proc/net/udp", &buffer, &buffer_alloc)))
+	if (0 < (n = proc_read_file(ROOTFS "/proc/net/udp", &buffer, &buffer_alloc)))
 	{
 		ret = SYSINFO_RET_OK;
 
@@ -703,7 +703,7 @@ int	NET_UDP_LISTEN(AGENT_REQUEST *request, AGENT_RESULT *result)
 		}
 	}
 
-	if (0 < (n = proc_read_file("/proc/net/udp6", &buffer, &buffer_alloc)))
+	if (0 < (n = proc_read_file(ROOTFS "/proc/net/udp6", &buffer, &buffer_alloc)))
 	{
 		ret = SYSINFO_RET_OK;
 

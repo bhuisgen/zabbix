@@ -1523,6 +1523,16 @@ case "x$ARCH" in
 		;;
 esac		
 
+dnl Custom rootfs path
+AC_ARG_VAR(ROOTFS, custom rootfs path)
+AC_MSG_CHECKING([for custom rootfs path])
+if test "x${ROOTFS}" = "x"; then
+	AC_MSG_RESULT([no])
+else
+	AC_MSG_RESULT([yes])
+fi
+AC_DEFINE_UNQUOTED(ROOTFS, "${ROOTFS}", [Rootfs path.])
+
 
 dnl *****************************************************************
 dnl *                                                               *

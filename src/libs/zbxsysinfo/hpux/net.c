@@ -386,7 +386,7 @@ static int	get_net_stat(Ext_mib_t *mib, const char *if_name)
 {
 	int	fd, ppa;
 
-	if (-1 == (fd = open("/dev/dlpi", O_RDWR)))
+	if (-1 == (fd = open(ROOTFS "/dev/dlpi", O_RDWR)))
 		return FAIL;
 
 	if (FAIL == get_ppa(fd, if_name, &ppa))

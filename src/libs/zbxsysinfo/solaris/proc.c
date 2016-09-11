@@ -159,9 +159,9 @@ int	PROC_MEM(AGENT_REQUEST *request, AGENT_RESULT *result)
 	if (1 == invalid_user)	/* handle 0 for non-existent user after all parameters have been parsed and validated */
 		goto out;
 
-	if (NULL == (dir = opendir("/proc")))
+	if (NULL == (dir = opendir(ROOTFS "/proc")))
 	{
-		SET_MSG_RESULT(result, zbx_dsprintf(NULL, "Cannot open /proc: %s", zbx_strerror(errno)));
+		SET_MSG_RESULT(result, zbx_dsprintf(NULL, "Cannot open %s: %s", ROOTFS "/proc" zbx_strerror(errno)));
 		return SYSINFO_RET_FAIL;
 	}
 
@@ -173,7 +173,7 @@ int	PROC_MEM(AGENT_REQUEST *request, AGENT_RESULT *result)
 			fd = -1;
 		}
 
-		zbx_snprintf(tmp, sizeof(tmp), "/proc/%s/psinfo", entries->d_name);
+		zbx_snprintf(tmp, sizeof(tmp), ROOTFS "/proc/%s/psinfo", entries->d_name);
 
 		if (-1 == (fd = open(tmp, O_RDONLY)))
 			continue;
@@ -308,9 +308,9 @@ int	PROC_NUM(AGENT_REQUEST *request, AGENT_RESULT *result)
 	if (1 == invalid_user)	/* handle 0 for non-existent user after all parameters have been parsed and validated */
 		goto out;
 
-	if (NULL == (dir = opendir("/proc")))
+	if (NULL == (dir = opendir(ROOTFS "/proc")))
 	{
-		SET_MSG_RESULT(result, zbx_dsprintf(NULL, "Cannot open /proc: %s", zbx_strerror(errno)));
+		SET_MSG_RESULT(result, zbx_dsprintf(NULL, "Cannot open %s: %s", ROOTFS "/proc", zbx_strerror(errno)));
 		return SYSINFO_RET_FAIL;
 	}
 
@@ -322,7 +322,7 @@ int	PROC_NUM(AGENT_REQUEST *request, AGENT_RESULT *result)
 			fd = -1;
 		}
 
-		zbx_snprintf(tmp, sizeof(tmp), "/proc/%s/psinfo", entries->d_name);
+		zbx_snprintf(tmp, sizeof(tmp), ROOTFS "/proc/%s/psinfo", entries->d_name);
 
 		if (0 != zbx_stat(tmp, &buf))
 			continue;
@@ -504,7 +504,7 @@ static int	proc_read_cpu_util(zbx_procstat_util_t *procutil)
 	psinfo_t	psinfo;
 	prusage_t	prusage;
 
-	zbx_snprintf(tmp, sizeof(tmp), "/proc/%d/psinfo", (int)procutil->pid);
+	zbx_snprintf(tmp, sizeof(tmp), ROOTFS "/proc/%d/psinfo", (int)procutil->pid);
 
 	if (-1 == (fd = open(tmp, O_RDONLY)))
 		return -errno;
@@ -517,7 +517,7 @@ static int	proc_read_cpu_util(zbx_procstat_util_t *procutil)
 
 	procutil->starttime = psinfo.pr_start.tv_sec;
 
-	zbx_snprintf(tmp, sizeof(tmp), "/proc/%d/usage", (int)procutil->pid);
+	zbx_snprintf(tmp, sizeof(tmp), ROOTFS "/proc/%d/status", (int)procutil->pid);
 
 	if (-1 == (fd = open(tmp, O_RDONLY)))
 		return -errno;
@@ -588,7 +588,7 @@ int	zbx_proc_get_processes(zbx_vector_ptr_t *processes, unsigned int flags)
 
 	zabbix_log(LOG_LEVEL_TRACE, "In %s()", __function_name);
 
-	if (NULL == (dir = opendir("/proc")))
+	if (NULL == (dir = opendir(ROOTFS "/proc")))
 		goto out;
 
 	while (NULL != (entries = readdir(dir)))
@@ -597,7 +597,7 @@ int	zbx_proc_get_processes(zbx_vector_ptr_t *processes, unsigned int flags)
 		if (FAIL == is_uint32(entries->d_name, &pid))
 			continue;
 
-		zbx_snprintf(tmp, sizeof(tmp), "/proc/%s/psinfo", entries->d_name);
+		zbx_snprintf(tmp, sizeof(tmp), ROOTFS "/proc/%s/psinfo", entries->d_name);
 
 		if (-1 == (fd = open(tmp, O_RDONLY)))
 			continue;

@@ -125,9 +125,9 @@ int	VFS_FS_DISCOVERY(AGENT_REQUEST *request, AGENT_RESULT *result)
 	FILE		*f;
 	struct zbx_json	j;
 
-	if (NULL == (f = fopen("/proc/mounts", "r")))
+	if (NULL == (f = fopen(ROOTFS "/proc/mounts", "r")))
 	{
-		SET_MSG_RESULT(result, zbx_dsprintf(NULL, "Cannot open /proc/mounts: %s", zbx_strerror(errno)));
+		SET_MSG_RESULT(result, zbx_dsprintf(NULL, "Cannot open %s: %s", ROOTFS "/proc/mounts", zbx_strerror(errno)));
 		return SYSINFO_RET_FAIL;
 	}
 

@@ -199,9 +199,9 @@ int	VFS_FS_DISCOVERY(AGENT_REQUEST *request, AGENT_RESULT *result)
 	struct zbx_json	j;
 
 	/* opening the mounted filesystems file */
-	if (NULL == (f = fopen("/etc/mnttab", "r")))
+	if (NULL == (f = fopen(ROOTFS "/etc/mnttab", "r")))
 	{
-		SET_MSG_RESULT(result, zbx_dsprintf(NULL, "Cannot open /etc/mnttab: %s", zbx_strerror(errno)));
+		SET_MSG_RESULT(result, zbx_dsprintf(NULL, "Cannot open %s: %s", ROOTFS "/etc/mnttab", zbx_strerror(errno)));
 		return SYSINFO_RET_FAIL;
 	}
 

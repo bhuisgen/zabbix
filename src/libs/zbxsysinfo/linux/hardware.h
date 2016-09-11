@@ -24,7 +24,7 @@
 #define SMBIOS_STATUS_ERROR	2
 #define SMBIOS_STATUS_OK	3
 
-#define DEV_MEM			"/dev/mem"
+#define DEV_MEM			ROOTFS "/dev/mem"
 #define SMBIOS_ENTRY_POINT_SIZE	0x20
 #define DMI_HEADER_SIZE		4
 
@@ -36,9 +36,9 @@
 #define DMI_GET_MODEL		0x04
 #define DMI_GET_SERIAL		0x08
 
-#define CPU_MAX_FREQ_FILE	"/sys/devices/system/cpu/cpu%d/cpufreq/cpuinfo_max_freq"
+#define CPU_MAX_FREQ_FILE	ROOTFS "/sys/devices/system/cpu/cpu%d/cpufreq/cpuinfo_max_freq"
 
-#define HW_CPU_INFO_FILE	"/proc/cpuinfo"
+#define HW_CPU_INFO_FILE	ROOTFS "/proc/cpuinfo"
 #define HW_CPU_ALL_CPUS		-1
 #define HW_CPU_SHOW_ALL		1
 #define HW_CPU_SHOW_MAXFREQ	2
