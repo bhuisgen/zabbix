@@ -104,7 +104,7 @@ static int	get_dmi_info(char *buf, int bufsize, int flags)
 	static int	smbios_status = SMBIOS_STATUS_UNKNOWN;
 	static size_t	smbios_len, smbios;	/* length and address of SMBIOS table (if found) */
 
-	if (-1 == (fd = open(DEV_MEM, O_RDONLY)))
+	if (-1 == (fd = zbx_open(DEV_MEM, O_RDONLY)))
 		return ret;
 
 	if (SMBIOS_STATUS_UNKNOWN == smbios_status)	/* look for SMBIOS table only once */
@@ -193,7 +193,7 @@ static int	get_dmi_info(char *buf, int bufsize, int flags)
 clean:
 	zbx_free(smbuf);
 close:
-	close(fd);
+	zbx_close(fd);
 
 	return ret;
 }
@@ -246,14 +246,14 @@ static zbx_uint64_t	get_cpu_max_freq(int cpu_num)
 
 	zbx_snprintf(filename, sizeof(filename), CPU_MAX_FREQ_FILE, cpu_num);
 
-	f = fopen(filename, "r");
+	f = zbx_fopen(filename, "r");
 
 	if (NULL != f)
 	{
 		if (1 != fscanf(f, ZBX_FS_UI64, &freq))
 			freq = FAIL;
 
-		fclose(f);
+		zbx_fclose(f);
 	}
 
 	return freq;
@@ -330,7 +330,7 @@ int     SYSTEM_HW_CPU(AGENT_REQUEST *request, AGENT_RESULT *result)
 		return SYSINFO_RET_FAIL;
 	}
 
-	if (NULL == (f = fopen(HW_CPU_INFO_FILE, "r")))
+	if (NULL == (f = zbx_fopen(HW_CPU_INFO_FILE, "r")))
 	{
 		SET_MSG_RESULT(result, zbx_dsprintf(NULL, "Cannot open " HW_CPU_INFO_FILE ": %s", zbx_strerror(errno)));
 		return SYSINFO_RET_FAIL;
@@ -462,7 +462,7 @@ int     SYSTEM_HW_MACADDR(AGENT_REQUEST *request, AGENT_RESULT *result)
 	ifc.ifc_buf = buffer;
 	if (-1 == ioctl(s, SIOCGIFCONF, &ifc))
 	{
-		close(s);
+		zbx_close(s);
 		SET_MSG_RESULT(result, zbx_dsprintf(NULL, "Cannot set socket parameters: %s", zbx_strerror(errno)));
 		return SYSINFO_RET_FAIL;
 	}
@@ -524,7 +524,7 @@ int     SYSTEM_HW_MACADDR(AGENT_REQUEST *request, AGENT_RESULT *result)
 	SET_STR_RESULT(result, zbx_strdup(NULL, buffer));
 
 	zbx_vector_str_destroy(&addresses);
-	close(s);
+	zbx_close(s);
 
 	return SYSINFO_RET_OK;
 }

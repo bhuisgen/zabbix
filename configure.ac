@@ -1524,6 +1524,7 @@ case "x$ARCH" in
 esac		
 
 
+
 dnl *****************************************************************
 dnl *                                                               *
 dnl *                 Output configuration results                  *

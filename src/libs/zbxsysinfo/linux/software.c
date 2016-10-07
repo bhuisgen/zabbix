@@ -62,7 +62,7 @@ int     SYSTEM_SW_OS(AGENT_REQUEST *request, AGENT_RESULT *result)
 
 	if (NULL == type || '\0' == *type || 0 == strcmp(type, "full"))
 	{
-		if (NULL == (f = fopen(SW_OS_FULL, "r")))
+		if (NULL == (f = zbx_fopen(SW_OS_FULL, "r")))
 		{
 			SET_MSG_RESULT(result, zbx_dsprintf(NULL, "Cannot open " SW_OS_FULL ": %s",
 					zbx_strerror(errno)));
@@ -71,7 +71,7 @@ int     SYSTEM_SW_OS(AGENT_REQUEST *request, AGENT_RESULT *result)
 	}
 	else if (0 == strcmp(type, "short"))
 	{
-		if (NULL == (f = fopen(SW_OS_SHORT, "r")))
+		if (NULL == (f = zbx_fopen(SW_OS_SHORT, "r")))
 		{
 			SET_MSG_RESULT(result, zbx_dsprintf(NULL, "Cannot open " SW_OS_SHORT ": %s",
 					zbx_strerror(errno)));
@@ -82,7 +82,7 @@ int     SYSTEM_SW_OS(AGENT_REQUEST *request, AGENT_RESULT *result)
 	{
 		/* firstly need to check option PRETTY_NAME in /etc/os-release */
 		/* if cannot find it, get value from /etc/issue.net            */
-		if (NULL != (f = fopen(SW_OS_NAME_RELEASE, "r")))
+		if (NULL != (f = zbx_fopen(SW_OS_NAME_RELEASE, "r")))
 		{
 			while (NULL != fgets(tmp_line, sizeof(tmp_line), f))
 			{
@@ -99,7 +99,7 @@ int     SYSTEM_SW_OS(AGENT_REQUEST *request, AGENT_RESULT *result)
 			zbx_fclose(f);
 		}
 
-		if (FAIL == line_read && NULL == (f = fopen(SW_OS_NAME, "r")))
+		if (FAIL == line_read && NULL == (f = zbx_fopen(SW_OS_NAME, "r")))
 		{
 			SET_MSG_RESULT(result, zbx_dsprintf(NULL, "Cannot open " SW_OS_NAME ": %s",
 					zbx_strerror(errno)));

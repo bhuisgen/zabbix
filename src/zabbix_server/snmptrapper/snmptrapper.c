@@ -477,7 +477,7 @@ out:
 static void	close_trap_file()
 {
 	if (-1 != trap_fd)
-		close(trap_fd);
+		zbx_close(trap_fd);
 
 	trap_fd = -1;
 	trap_lastsize = 0;
@@ -516,7 +516,7 @@ static int	open_trap_file()
 		goto out;
 	}
 
-	if (-1 == (trap_fd = open(CONFIG_SNMPTRAP_FILE, O_RDONLY)))
+	if (-1 == (trap_fd = zbx_open(CONFIG_SNMPTRAP_FILE, O_RDONLY)))
 	{
 		if (ENOENT != errno)	/* file exists but cannot be opened */
 		{
@@ -669,5 +669,5 @@ ZBX_THREAD_ENTRY(snmptrapper_thread, args)
 	zbx_free(buffer);
 
 	if (-1 != trap_fd)
-		close(trap_fd);
+		zbx_close(trap_fd);
 }

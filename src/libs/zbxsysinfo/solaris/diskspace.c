@@ -195,13 +195,17 @@ int	VFS_FS_SIZE(AGENT_REQUEST *request, AGENT_RESULT *result)
 int	VFS_FS_DISCOVERY(AGENT_REQUEST *request, AGENT_RESULT *result)
 {
 	struct mnttab	mt;
+	char		path[MAX_STRING_LEN];
 	FILE		*f;
 	struct zbx_json	j;
 
 	/* opening the mounted filesystems file */
-	if (NULL == (f = fopen("/etc/mnttab", "r")))
+
+	zbx_rootfs_path(path, sizeof(path), "/etc/mnttab");
+
+	if (NULL == (f = zbx_rootfs_fopen(path, "r")))
 	{
-		SET_MSG_RESULT(result, zbx_dsprintf(NULL, "Cannot open /etc/mnttab: %s", zbx_strerror(errno)));
+		SET_MSG_RESULT(result, zbx_dsprintf(NULL, "Cannot open %s: %s", path, zbx_strerror(errno)));
 		return SYSINFO_RET_FAIL;
 	}
 

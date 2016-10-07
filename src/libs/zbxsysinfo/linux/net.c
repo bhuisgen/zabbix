@@ -190,7 +190,7 @@ static int	find_tcp_port_by_state_nl(unsigned short port, int state, int *found)
 	}
 out:
 	if (-1 != fd)
-		close(fd);
+		zbx_close(fd);
 
 	if (NLERR_OK == nlerr)
 		ret = SUCCEED;
@@ -203,6 +203,7 @@ static int	get_net_stat(const char *if_name, net_stat_t *result, char **error)
 {
 	int	ret = SYSINFO_RET_FAIL;
 	char	line[MAX_STRING_LEN], name[MAX_STRING_LEN], *p;
+	char	path[MAX_STRING_LEN];
 	FILE	*f;
 
 	if (NULL == if_name || '\0' == *if_name)
@@ -211,9 +212,11 @@ static int	get_net_stat(const char *if_name, net_stat_t *result, char **error)
 		return SYSINFO_RET_FAIL;
 	}
 
-	if (NULL == (f = fopen("/proc/net/dev", "r")))
+	zbx_rootfs_path(path, sizeof(path), "/proc/net/dev");
+
+	if (NULL == (f = zbx_fopen(path, "r")))
 	{
-		*error = zbx_dsprintf(NULL, "Cannot open /proc/net/dev: %s", zbx_strerror(errno));
+		*error = zbx_dsprintf(NULL, "Cannot open %s: %s", path, zbx_strerror(errno));
 		return SYSINFO_RET_FAIL;
 	}
 
@@ -251,7 +254,7 @@ static int	get_net_stat(const char *if_name, net_stat_t *result, char **error)
 
 	if (SYSINFO_RET_FAIL == ret)
 	{
-		*error = zbx_strdup(NULL, "Cannot find information for this network interface in /proc/net/dev.");
+		*error = zbx_dsprintf(NULL, "Cannot find information for this network interface in %s.", path);
 		return SYSINFO_RET_FAIL;
 	}
 
@@ -276,10 +279,13 @@ static int	get_net_stat(const char *if_name, net_stat_t *result, char **error)
  ******************************************************************************/
 static int    proc_read_tcp_listen(const char *filename, char **buffer, int *buffer_alloc)
 {
+	char	path[MAX_STRING_LEN];
 	int     n, fd, ret = -1, offset = 0;
-	char    *start, *end;
+	char	*start, *end;
 
-	if (-1 == (fd = open(filename, O_RDONLY)))
+	zbx_rootfs_path(path, sizeof(path), filename);
+
+	if (-1 == (fd = zbx_open(path, O_RDONLY)))
 		return -1;
 
 	while (0 != (n = read(fd, *buffer + offset, *buffer_alloc - offset)))
@@ -338,7 +344,7 @@ static int    proc_read_tcp_listen(const char *filename, char **buffer, int *buf
 
 	ret = offset;
 out:
-	close(fd);
+	zbx_close(fd);
 
 	return ret;
 }
@@ -360,9 +366,12 @@ out:
  ******************************************************************************/
 static int	proc_read_file(const char *filename, char **buffer, int *buffer_alloc)
 {
+	char	path[MAX_STRING_LEN];
 	int	n, fd, ret = -1, offset = 0;
 
-	if (-1 == (fd = open(filename, O_RDONLY)))
+	zbx_rootfs_path(path, sizeof(path), filename);
+
+	if (-1 == (fd = zbx_open(path, O_RDONLY)))
 		return -1;
 
 	while (0 != (n = read(fd, *buffer + offset, *buffer_alloc - offset)))
@@ -381,7 +390,7 @@ static int	proc_read_file(const char *filename, char **buffer, int *buffer_alloc
 
 	ret = offset;
 out:
-	close(fd);
+	zbx_close(fd);
 
 	return ret;
 }
@@ -523,15 +532,18 @@ int	NET_IF_COLLISIONS(AGENT_REQUEST *request, AGENT_RESULT *result)
 
 int	NET_IF_DISCOVERY(AGENT_REQUEST *request, AGENT_RESULT *result)
 {
+	char		path[MAX_STRING_LEN];
 	char		line[MAX_STRING_LEN], *p;
 	FILE		*f;
 	struct zbx_json	j;
 
 	ZBX_UNUSED(request);
 
-	if (NULL == (f = fopen("/proc/net/dev", "r")))
+	zbx_rootfs_path(path, sizeof(path), "/proc/net/dev");
+
+	if (NULL == (f = zbx_fopen(path, "r")))
 	{
-		SET_MSG_RESULT(result, zbx_dsprintf(NULL, "Cannot open /proc/net/dev: %s", zbx_strerror(errno)));
+		SET_MSG_RESULT(result, zbx_dsprintf(NULL, "Cannot open %s/dev: %s", path, zbx_strerror(errno)));
 		return SYSINFO_RET_FAIL;
 	}
 
@@ -568,6 +580,7 @@ int	NET_IF_DISCOVERY(AGENT_REQUEST *request, AGENT_RESULT *result)
 
 int	NET_TCP_LISTEN(AGENT_REQUEST *request, AGENT_RESULT *result)
 {
+	char		path[MAX_STRING_LEN];
 	char		pattern[64], *port_str, *buffer = NULL;
 	unsigned short	port;
 	zbx_uint64_t	listen = 0;
@@ -634,7 +647,9 @@ int	NET_TCP_LISTEN(AGENT_REQUEST *request, AGENT_RESULT *result)
 #endif
 		buffer = zbx_malloc(NULL, buffer_alloc);
 
-		if (0 < (n = proc_read_tcp_listen("/proc/net/tcp", &buffer, &buffer_alloc)))
+		zbx_rootfs_path(path, sizeof(path), "/proc/net/tcp");
+
+		if (0 < (n = proc_read_tcp_listen(path, &buffer, &buffer_alloc)))
 		{
 			ret = SYSINFO_RET_OK;
 
@@ -647,7 +662,9 @@ int	NET_TCP_LISTEN(AGENT_REQUEST *request, AGENT_RESULT *result)
 			}
 		}
 
-		if (0 < (n = proc_read_tcp_listen("/proc/net/tcp6", &buffer, &buffer_alloc)))
+		zbx_rootfs_path(path, sizeof(path), "/proc/net/tcp6");
+
+		if (0 < (n = proc_read_tcp_listen(path, &buffer, &buffer_alloc)))
 		{
 			ret = SYSINFO_RET_OK;
 
@@ -669,6 +686,7 @@ out:
 
 int	NET_UDP_LISTEN(AGENT_REQUEST *request, AGENT_RESULT *result)
 {
+	char		path[MAX_STRING_LEN];
 	char		pattern[64], *port_str, *buffer = NULL;
 	unsigned short	port;
 	zbx_uint64_t	listen = 0;
@@ -690,7 +708,9 @@ int	NET_UDP_LISTEN(AGENT_REQUEST *request, AGENT_RESULT *result)
 
 	buffer = zbx_malloc(NULL, buffer_alloc);
 
-	if (0 < (n = proc_read_file("/proc/net/udp", &buffer, &buffer_alloc)))
+	zbx_rootfs_path(path, sizeof(path), "/proc/net/udp");
+
+	if (0 < (n = proc_read_file(path, &buffer, &buffer_alloc)))
 	{
 		ret = SYSINFO_RET_OK;
 
@@ -705,7 +725,9 @@ int	NET_UDP_LISTEN(AGENT_REQUEST *request, AGENT_RESULT *result)
 		}
 	}
 
-	if (0 < (n = proc_read_file("/proc/net/udp6", &buffer, &buffer_alloc)))
+	zbx_rootfs_path(path, sizeof(path), "/proc/net/udp6");
+
+	if (0 < (n = proc_read_file(path, &buffer, &buffer_alloc)))
 	{
 		ret = SYSINFO_RET_OK;
 

@@ -123,6 +123,7 @@ static int	get_swap_dev_stat(const char *swapdev, swap_stat_t *result)
 	char		line[MAX_STRING_LEN];
 	int		rdev_major, rdev_minor;
 	zbx_stat_t	dev_st;
+	char		path[MAX_STRING_LEN];
 	FILE		*f;
 
 	assert(result);
@@ -130,7 +131,9 @@ static int	get_swap_dev_stat(const char *swapdev, swap_stat_t *result)
 	if (-1 == zbx_stat(swapdev, &dev_st))
 		return ret;
 
-	if (NULL == (f = fopen(INFO_FILE_NAME, "r")))
+	zbx_rootfs_path(path, sizeof(path), INFO_FILE_NAME);
+
+	if (NULL == (f = zbx_fopen(path, "r")))
 		return ret;
 
 	while (NULL != fgets(line, sizeof(line), f))
@@ -143,7 +146,7 @@ static int	get_swap_dev_stat(const char *swapdev, swap_stat_t *result)
 			break;
 		}
 	}
-	fclose(f);
+	zbx_fclose(f);
 
 	return ret;
 }
@@ -155,13 +158,16 @@ static int	get_swap_pages(swap_stat_t *result)
 #ifndef KERNEL_2_4
 	char	st = 0;
 #endif
+	char	path[MAX_STRING_LEN];
 	FILE	*f;
 
 #ifdef KERNEL_2_4
-	if (NULL != (f = fopen("/proc/stat", "r")))
+	zbx_rootfs_path(path, sizeof(path), "/proc/stat");
 #else
-	if (NULL != (f = fopen("/proc/vmstat", "r")))
+	zbx_rootfs_path(path, sizeof(path), "/proc/vmstat");
 #endif
+
+	if (NULL != (f = zbx_fopen(path, "r")))
 	{
 		while (NULL != fgets(line, sizeof(line), f))
 		{
@@ -205,6 +211,8 @@ static int	get_swap_stat(const char *swapdev, swap_stat_t *result)
 {
 	int		offset = 0, ret = SYSINFO_RET_FAIL;
 	swap_stat_t	curr;
+	char		path[MAX_STRING_LEN], devpath[MAX_STRING_LEN];
+	int			devpath_len;
 	FILE		*f;
 	char		line[MAX_STRING_LEN], *s;
 
@@ -215,10 +223,18 @@ static int	get_swap_stat(const char *swapdev, swap_stat_t *result)
 		ret = get_swap_pages(result);
 		swapdev = NULL;
 	}
-	else if (0 != strncmp(swapdev, "/dev/", 5))
-		offset = 5;
+	else
+	{
+		zbx_rootfs_path(devpath, sizeof(devpath), "/dev/");
+		devpath_len = strlen(devpath);
 
-	if (NULL == (f = fopen("/proc/swaps", "r")))
+		if (0 != strncmp(swapdev, devpath, devpath_len))
+			offset = devpath_len;
+	}
+
+	zbx_rootfs_path(path, sizeof(path), "/proc/swaps");
+
+	if (NULL == (f = zbx_fopen(path, "r")))
 		return ret;
 
 	while (NULL != fgets(line, sizeof(line), f))
@@ -244,7 +260,7 @@ static int	get_swap_stat(const char *swapdev, swap_stat_t *result)
 			ret = SYSINFO_RET_OK;
 		}
 	}
-	fclose(f);
+	zbx_fclose(f);
 
 	return ret;
 }

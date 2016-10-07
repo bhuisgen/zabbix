@@ -40,6 +40,9 @@ extern char	**CONFIG_LOAD_MODULE;
 extern char	**CONFIG_PERF_COUNTERS;
 #endif
 extern char	*CONFIG_USER;
+#ifndef _WINDOWS
+extern char	*CONFIG_ROOT_FILESYSTEM;
+#endif
 
 extern unsigned int	configured_tls_connect_mode;
 extern unsigned int	configured_tls_accept_modes;
