@@ -500,7 +500,35 @@ static int	open_trap_file()
 	zbx_stat_t	file_buf;
 	char		*error = NULL;
 
-	if (0 != zbx_stat(CONFIG_SNMPTRAP_FILE, &file_buf))
+#ifdef _WINDOWS
+	int	stat, fd;
+	wchar_t	*wpath;
+
+	wpath = zbx_utf8_to_unicode(CONFIG_SNMPTRAP_FILE);
+
+	if (-1 == (stat = _wstat64(wpath, &file_buf)))
+		goto out;
+
+	if (0 != S_ISDIR(file_buf->st_mode) || 0 != file_buf->st_size)
+		goto out;
+
+	/* In the case of symlinks _wstat64 returns zero file size.   */
+	/* Try to work around it by opening the file and using fstat. */
+
+	stat = -1;
+
+	if (-1 != (fd = _wopen(wpath, O_RDONLY)))
+	{
+		stat = _fstat64(fd, &file_buf);
+		_close(fd);
+	}
+out:
+	zbx_free(wpath);
+
+	if (0 != stat)
+#else
+	if (0 != stat(CONFIG_SNMPTRAP_FILE, &file_buf))
+#endif
 	{
 		error = zbx_dsprintf(error, "cannot stat SNMP trapper file \"%s\": %s", CONFIG_SNMPTRAP_FILE,
 				zbx_strerror(errno));
@@ -553,7 +581,35 @@ static int	get_latest_data()
 
 	if (-1 != trap_fd)	/* a trap file is already open */
 	{
-		if (0 != zbx_stat(CONFIG_SNMPTRAP_FILE, &file_buf))
+#ifdef _WINDOWS
+		int	stat, fd;
+		wchar_t	*wpath;
+
+		wpath = zbx_utf8_to_unicode(CONFIG_SNMPTRAP_FILE);
+
+		if (-1 == (stat = _wstat64(wpath, &file_buf)))
+			goto out;
+
+		if (0 != S_ISDIR(file_buf->st_mode) || 0 != file_buf->st_size)
+			goto out;
+
+		/* In the case of symlinks _wstat64 returns zero file size.   */
+		/* Try to work around it by opening the file and using fstat. */
+
+		stat = -1;
+
+		if (-1 != (fd = _wopen(wpath, O_RDONLY)))
+		{
+			stat = _fstat64(fd, &file_buf);
+			_close(fd);
+		}
+out:
+		zbx_free(wpath);
+
+		if (0 != stat)
+#else
+		if (0 != stat(CONFIG_SNMPTRAP_FILE, &file_buf))
+#endif
 		{
 			/* file might have been renamed or deleted, process the current file */
 
@@ -669,5 +725,5 @@ ZBX_THREAD_ENTRY(snmptrapper_thread, args)
 	zbx_free(buffer);
 
 	if (-1 != trap_fd)
-		close(trap_fd);
+		zbx_close(trap_fd);
 }

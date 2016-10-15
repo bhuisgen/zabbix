@@ -276,7 +276,35 @@ static int	parse_cfg_dir(const char *path, const char *pattern, struct cfg_line 
 	{
 		file = zbx_dsprintf(file, "%s/%s", path, d->d_name);
 
-		if (0 != zbx_stat(file, &sb) || 0 == S_ISREG(sb.st_mode))
+#ifdef _WINDOWS
+		int	stat, fd;
+		wchar_t	*wpath;
+
+		wpath = zbx_utf8_to_unicode(file);
+
+		if (-1 == (stat = _wstat64(wpath, &sb)))
+			goto out;
+
+		if (0 != S_ISDIR(sb->st_mode) || 0 != sb->st_size)
+			goto out;
+
+		/* In the case of symlinks _wstat64 returns zero file size.   */
+		/* Try to work around it by opening the file and using fstat. */
+
+		stat = -1;
+
+		if (-1 != (fd = _wopen(wpath, O_RDONLY)))
+		{
+			stat = _fstat64(fd, &sb);
+			_close(fd);
+		}
+out:
+		zbx_free(wpath);
+
+		if (0 != stat)
+#else
+		if (0 != stat(file, &sb) || 0 == S_ISREG(sb.st_mode))
+#endif
 			continue;
 
 		if (NULL != pattern && SUCCEED != match_glob(d->d_name, pattern))
@@ -324,7 +352,35 @@ static int	parse_cfg_object(const char *cfg_file, struct cfg_line *cfg, int leve
 	if (SUCCEED != parse_glob(cfg_file, &path, &pattern))
 		goto clean;
 
-	if (0 != zbx_stat(path, &sb))
+#ifdef _WINDOWS
+	int	stat, fd;
+	wchar_t	*wpath;
+
+	wpath = zbx_utf8_to_unicode(path);
+
+	if (-1 == (stat = _wstat64(wpath, &sb)))
+		goto out;
+
+	if (0 != S_ISDIR(sb->st_mode) || 0 != sb->st_size)
+		goto out;
+
+	/* In the case of symlinks _wstat64 returns zero file size.   */
+	/* Try to work around it by opening the file and using fstat. */
+
+	stat = -1;
+
+	if (-1 != (fd = _wopen(wpath, O_RDONLY)))
+	{
+		stat = _fstat64(fd, &sb);
+		_close(fd);
+	}
+out:
+	zbx_free(wpath);
+
+	if (0 != stat)
+#else
+	if (0 != stat(path, &sb))
+#endif
 	{
 		zbx_error("%s: %s", path, zbx_strerror(errno));
 		goto clean;

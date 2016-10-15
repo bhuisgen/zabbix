@@ -37,7 +37,35 @@ int	create_pid_file(const char *pidfile)
 	fl.l_pid = getpid();
 
 	/* check if pid file already exists */
-	if (0 == zbx_stat(pidfile, &buf))
+#ifdef _WINDOWS
+	int	stat, fd;
+	wchar_t	*wpath;
+
+	wpath = zbx_utf8_to_unicode(pidfile);
+
+	if (-1 == (stat = _wstat64(wpath, &buf)))
+		goto out;
+
+	if (0 != S_ISDIR(buf->st_mode) || 0 != buf->st_size)
+		goto out;
+
+	/* In the case of symlinks _wstat64 returns zero file size.   */
+	/* Try to work around it by opening the file and using fstat. */
+
+	stat = -1;
+
+	if (-1 != (fd = _wopen(wpath, O_RDONLY)))
+	{
+		stat = _fstat64(fd, &buf);
+		_close(fd);
+	}
+out:
+	zbx_free(wpath);
+
+	if (0 == stat)
+#else
+	if (0 == stat(pidfile, &buf))
+#endif
 	{
 		if (-1 == (fd = open(pidfile, O_WRONLY | O_APPEND)))
 		{

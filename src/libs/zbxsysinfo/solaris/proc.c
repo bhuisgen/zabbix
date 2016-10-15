@@ -82,6 +82,7 @@ static int	check_procstate(psinfo_t *psinfo, int zbx_proc_stat)
 int	PROC_MEM(AGENT_REQUEST *request, AGENT_RESULT *result)
 {
 	char		tmp[MAX_STRING_LEN], *procname, *proccomm, *param, *memtype = NULL;
+	char		path[MAX_STRING_LEN];
 	DIR		*dir;
 	struct dirent	*entries;
 	struct passwd	*usrinfo;
@@ -159,23 +160,25 @@ int	PROC_MEM(AGENT_REQUEST *request, AGENT_RESULT *result)
 	if (1 == invalid_user)	/* handle 0 for non-existent user after all parameters have been parsed and validated */
 		goto out;
 
-	if (NULL == (dir = opendir("/proc")))
+	path = zbx_rootfs_path(path, sizeof(path), "/proc");
+
+	if (NULL == (dir = zbx_opendir(path)))
 	{
-		SET_MSG_RESULT(result, zbx_dsprintf(NULL, "Cannot open /proc: %s", zbx_strerror(errno)));
+		SET_MSG_RESULT(result, zbx_dsprintf(NULL, "Cannot open %s: %s", path, zbx_strerror(errno)));
 		return SYSINFO_RET_FAIL;
 	}
 
-	while (NULL != (entries = readdir(dir)))
+	while (NULL != (entries = zbx_readdir(dir)))
 	{
 		if (-1 != fd)
 		{
-			close(fd);
+			zbx_close(fd);
 			fd = -1;
 		}
 
-		zbx_snprintf(tmp, sizeof(tmp), "/proc/%s/psinfo", entries->d_name);
+		zbx_snprintf(tmp, sizeof(tmp), "%s/%s/psinfo", path, entries->d_name);
 
-		if (-1 == (fd = open(tmp, O_RDONLY)))
+		if (-1 == (fd = zbx_open(tmp, O_RDONLY)))
 			continue;
 
 		if (-1 == read(fd, &psinfo, sizeof(psinfo)))
@@ -227,9 +230,9 @@ int	PROC_MEM(AGENT_REQUEST *request, AGENT_RESULT *result)
 		}
 	}
 
-	closedir(dir);
+	zbx_closedir(dir);
 	if (-1 != fd)
-		close(fd);
+		zbx_close(fd);
 out:
 	if (NULL != p_value)
 	{
@@ -252,6 +255,7 @@ out:
 int	PROC_NUM(AGENT_REQUEST *request, AGENT_RESULT *result)
 {
 	char		tmp[MAX_STRING_LEN], *procname, *proccomm, *param;
+	char		path[MAX_STRING_LEN];
 	DIR		*dir;
 	struct dirent	*entries;
 	zbx_stat_t	buf;
@@ -308,26 +312,28 @@ int	PROC_NUM(AGENT_REQUEST *request, AGENT_RESULT *result)
 	if (1 == invalid_user)	/* handle 0 for non-existent user after all parameters have been parsed and validated */
 		goto out;
 
-	if (NULL == (dir = opendir("/proc")))
+	zbx_rootfs_path(path, sizeof(path), "/proc");
+
+	if (NULL == (dir = zbx_opendir(path)))
 	{
-		SET_MSG_RESULT(result, zbx_dsprintf(NULL, "Cannot open /proc: %s", zbx_strerror(errno)));
+		SET_MSG_RESULT(result, zbx_dsprintf(NULL, "Cannot open %s: %s", path, zbx_strerror(errno)));
 		return SYSINFO_RET_FAIL;
 	}
 
-	while (NULL != (entries = readdir(dir)))
+	while (NULL != (entries = zbx_readdir(dir)))
 	{
 		if (-1 != fd)
 		{
-			close(fd);
+			zbx_close(fd);
 			fd = -1;
 		}
 
-		zbx_snprintf(tmp, sizeof(tmp), "/proc/%s/psinfo", entries->d_name);
+		zbx_snprintf(tmp, sizeof(tmp), "%s/%s/psinfo", path, entries->d_name);
 
 		if (0 != zbx_stat(tmp, &buf))
 			continue;
 
-		if (-1 == (fd = open(tmp, O_RDONLY)))
+		if (-1 == (fd = zbx_open(tmp, O_RDONLY)))
 			continue;
 
 		if (-1 == read(fd, &psinfo, sizeof(psinfo)))
@@ -348,9 +354,9 @@ int	PROC_NUM(AGENT_REQUEST *request, AGENT_RESULT *result)
 		proccount++;
 	}
 
-	closedir(dir);
+	zbx_closedir(dir);
 	if (-1 != fd)
-		close(fd);
+		zbx_close(fd);
 out:
 	SET_UI64_RESULT(result, proccount);
 
@@ -499,27 +505,30 @@ static int	zbx_solaris_version_get(unsigned int *major_version, unsigned int *mi
  ******************************************************************************/
 static int	proc_read_cpu_util(zbx_procstat_util_t *procutil)
 {
+	char		path[MAX_STRING_LEN];
 	int		fd, n;
 	char		tmp[MAX_STRING_LEN];
 	psinfo_t	psinfo;
 	prusage_t	prusage;
 
-	zbx_snprintf(tmp, sizeof(tmp), "/proc/%d/psinfo", (int)procutil->pid);
+	zbx_rootfs_path(path, sizeof(path), "/proc");
 
-	if (-1 == (fd = open(tmp, O_RDONLY)))
+	zbx_snprintf(tmp, sizeof(tmp), "%s/%d/psinfo", path, (int)procutil->pid);
+
+	if (-1 == (fd = zbx_open(tmp, O_RDONLY)))
 		return -errno;
 
 	n = read(fd, &psinfo, sizeof(psinfo));
-	close(fd);
+	zbx_close(fd);
 
 	if (-1 == n)
 		return -errno;
 
 	procutil->starttime = psinfo.pr_start.tv_sec;
 
-	zbx_snprintf(tmp, sizeof(tmp), "/proc/%d/usage", (int)procutil->pid);
+	zbx_snprintf(tmp, sizeof(tmp), "%s/%d/usage", path, (int)procutil->pid);
 
-	if (-1 == (fd = open(tmp, O_RDONLY)))
+	if (-1 == (fd = zbx_open(tmp, O_RDONLY)))
 		return -errno;
 
 	n = read(fd, &prusage, sizeof(prusage));
@@ -578,7 +587,7 @@ void	zbx_proc_get_process_stats(zbx_procstat_util_t *procs, int procs_num)
 int	zbx_proc_get_processes(zbx_vector_ptr_t *processes, unsigned int flags)
 {
 	const char		*__function_name = "zbx_proc_get_processes";
-
+	char			path[MAX_STRING_LEN];
 	DIR			*dir;
 	struct dirent		*entries;
 	char			tmp[MAX_STRING_LEN];
@@ -588,22 +597,24 @@ int	zbx_proc_get_processes(zbx_vector_ptr_t *processes, unsigned int flags)
 
 	zabbix_log(LOG_LEVEL_TRACE, "In %s()", __function_name);
 
-	if (NULL == (dir = opendir("/proc")))
+	zbx_rootfs_path(path, sizeof(path), "/proc");
+
+	if (NULL == (dir = zbx_opendir(path)))
 		goto out;
 
-	while (NULL != (entries = readdir(dir)))
+	while (NULL != (entries = zbx_readdir(dir)))
 	{
 		/* skip entries not containing pids */
 		if (FAIL == is_uint32(entries->d_name, &pid))
 			continue;
 
-		zbx_snprintf(tmp, sizeof(tmp), "/proc/%s/psinfo", entries->d_name);
+		zbx_snprintf(tmp, sizeof(tmp), "%s/%s/psinfo", path, entries->d_name);
 
-		if (-1 == (fd = open(tmp, O_RDONLY)))
+		if (-1 == (fd = zbx_open(tmp, O_RDONLY)))
 			continue;
 
 		n = read(fd, &psinfo, sizeof(psinfo));
-		close(fd);
+		zbx_close(fd);
 
 		if (-1 == n)
 			continue;
@@ -629,7 +640,7 @@ int	zbx_proc_get_processes(zbx_vector_ptr_t *processes, unsigned int flags)
 		zbx_vector_ptr_append(processes, proc);
 	}
 
-	closedir(dir);
+	zbx_closedir(dir);
 
 	ret = SUCCEED;
 out:

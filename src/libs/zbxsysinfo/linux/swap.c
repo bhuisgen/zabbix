@@ -130,7 +130,7 @@ static int	get_swap_dev_stat(const char *swapdev, swap_stat_t *result)
 	if (-1 == zbx_stat(swapdev, &dev_st))
 		return ret;
 
-	if (NULL == (f = fopen(INFO_FILE_NAME, "r")))
+	if (NULL == (f = zbx_fopen(INFO_FILE_NAME, "r")))
 		return ret;
 
 	while (NULL != fgets(line, sizeof(line), f))
@@ -143,7 +143,7 @@ static int	get_swap_dev_stat(const char *swapdev, swap_stat_t *result)
 			break;
 		}
 	}
-	fclose(f);
+	zbx_fclose(f);
 
 	return ret;
 }
@@ -158,9 +158,9 @@ static int	get_swap_pages(swap_stat_t *result)
 	FILE	*f;
 
 #ifdef KERNEL_2_4
-	if (NULL != (f = fopen("/proc/stat", "r")))
+	if (NULL != (f = zbx_fopen("/proc/stat", "r")))
 #else
-	if (NULL != (f = fopen("/proc/vmstat", "r")))
+	if (NULL != (f = zbx_fopen("/proc/vmstat", "r")))
 #endif
 	{
 		while (NULL != fgets(line, sizeof(line), f))
@@ -218,12 +218,15 @@ static int	get_swap_stat(const char *swapdev, swap_stat_t *result)
 	else if (0 != strncmp(swapdev, "/dev/", 5))
 		offset = 5;
 
-	if (NULL == (f = fopen("/proc/swaps", "r")))
+	if (NULL == (f = zbx_fopen("/proc/swaps", "r")))
 		return ret;
 
 	while (NULL != fgets(line, sizeof(line), f))
 	{
-		if (0 != strncmp(line, "/dev/", 5))
+		if (0 != strncmp(line, "/", 1))
+			continue;
+
+		if (NULL == strstr(line, "/dev/"))
 			continue;
 
 		if (NULL == (s = strchr(line, ' ')))
@@ -244,7 +247,7 @@ static int	get_swap_stat(const char *swapdev, swap_stat_t *result)
 			ret = SYSINFO_RET_OK;
 		}
 	}
-	fclose(f);
+	zbx_fclose(f);
 
 	return ret;
 }

@@ -75,20 +75,20 @@ int	PROC_MEM(AGENT_REQUEST *request, AGENT_RESULT *result)
 	if (1 == invalid_user)	/* handle 0 for non-existent user after all parameters have been parsed and validated */
 		goto out;
 
-	if (NULL == (dir = opendir("/proc")))
+	if (NULL == (dir = zbx_opendir("/proc")))
 	{
 		SET_MSG_RESULT(result, zbx_dsprintf(NULL, "Cannot open /proc: %s", zbx_strerror(errno)));
 		return SYSINFO_RET_FAIL;
 	}
 
-	while (NULL != (entries = readdir(dir)))
+	while (NULL != (entries = zbx_readdir(dir)))
 	{
 		strscpy(filename, "/proc/");
 		zbx_strlcat(filename, entries->d_name, MAX_STRING_LEN);
 
 		if (0 == zbx_stat(filename, &buf))
 		{
-			proc = open(filename, O_RDONLY);
+			proc = zbx_open(filename, O_RDONLY);
 			if (-1 == proc)
 				goto lbl_skip_procces;
 
@@ -128,11 +128,11 @@ int	PROC_MEM(AGENT_REQUEST *request, AGENT_RESULT *result)
 			}
 lbl_skip_procces:
 			if (-1 != proc)
-				close(proc);
+				zbx_close(proc);
 		}
 	}
 
-	closedir(dir);
+	zbx_closedir(dir);
 
 	if (0 > memsize)
 	{
@@ -199,20 +199,20 @@ int	PROC_NUM(AGENT_REQUEST *request, AGENT_RESULT *result)
 	if (1 == invalid_user)	/* handle 0 for non-existent user after all parameters have been parsed and validated */
 		goto out;
 
-	if (NULL == (dir = opendir("/proc")))
+	if (NULL == (dir = zbx_opendir("/proc")))
 	{
 		SET_MSG_RESULT(result, zbx_dsprintf(NULL, "Cannot open /proc: %s", zbx_strerror(errno)));
 		return SYSINFO_RET_FAIL;
 	}
 
-	while (NULL != (entries = readdir(dir)))
+	while (NULL != (entries = zbx_readdir(dir)))
 	{
 		strscpy(filename, "/proc/");
 		zbx_strlcat(filename, entries->d_name,MAX_STRING_LEN);
 
 		if (0 == zbx_stat(filename, &buf))
 		{
-			proc = open(filename, O_RDONLY);
+			proc = zbx_open(filename, O_RDONLY);
 			if (-1 == proc)
 				goto lbl_skip_procces;
 
@@ -242,11 +242,11 @@ int	PROC_NUM(AGENT_REQUEST *request, AGENT_RESULT *result)
 			proccount++;
 lbl_skip_procces:
 			if (-1 != proc)
-				close(proc);
+				zbx_close(proc);
 		}
 	}
 
-	closedir(dir);
+	zbx_closedir(dir);
 out:
 	SET_UI64_RESULT(result, proccount);
 

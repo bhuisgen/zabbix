@@ -323,7 +323,7 @@ static int	get_total_memory(zbx_uint64_t *total_memory)
 	FILE	*f;
 	int	ret = FAIL;
 
-	if (NULL != (f = fopen("/proc/meminfo", "r")))
+	if (NULL != (f = zbx_fopen("/proc/meminfo", "r")))
 	{
 		ret = byte_value_from_proc_file(f, "MemTotal:", NULL, total_memory);
 		zbx_fclose(f);
@@ -506,13 +506,13 @@ int	PROC_MEM(AGENT_REQUEST *request, AGENT_RESULT *result)
 		}
 	}
 
-	if (NULL == (dir = opendir("/proc")))
+	if (NULL == (dir = zbx_opendir("/proc")))
 	{
 		SET_MSG_RESULT(result, zbx_dsprintf(NULL, "Cannot open /proc: %s", zbx_strerror(errno)));
 		return SYSINFO_RET_FAIL;
 	}
 
-	while (NULL != (entries = readdir(dir)))
+	while (NULL != (entries = zbx_readdir(dir)))
 	{
 		zbx_fclose(f_cmd);
 		zbx_fclose(f_stat);
@@ -522,12 +522,12 @@ int	PROC_MEM(AGENT_REQUEST *request, AGENT_RESULT *result)
 
 		zbx_snprintf(tmp, sizeof(tmp), "/proc/%s/cmdline", entries->d_name);
 
-		if (NULL == (f_cmd = fopen(tmp, "r")))
+		if (NULL == (f_cmd = zbx_fopen(tmp, "r")))
 			continue;
 
 		zbx_snprintf(tmp, sizeof(tmp), "/proc/%s/status", entries->d_name);
 
-		if (NULL == (f_stat = fopen(tmp, "r")))
+		if (NULL == (f_stat = zbx_fopen(tmp, "r")))
 			continue;
 
 		if (FAIL == check_procname(f_cmd, f_stat, procname))
@@ -665,7 +665,7 @@ int	PROC_MEM(AGENT_REQUEST *request, AGENT_RESULT *result)
 clean:
 	zbx_fclose(f_cmd);
 	zbx_fclose(f_stat);
-	closedir(dir);
+	zbx_closedir(dir);
 
 	if ((0 == proccount && 0 != mem_type_tried) || 0 != invalid_read)
 	{
@@ -769,13 +769,13 @@ int	PROC_NUM(AGENT_REQUEST *request, AGENT_RESULT *result)
 	if (1 == invalid_user)	/* handle 0 for non-existent user after all parameters have been parsed and validated */
 		goto out;
 
-	if (NULL == (dir = opendir("/proc")))
+	if (NULL == (dir = zbx_opendir("/proc")))
 	{
 		SET_MSG_RESULT(result, zbx_dsprintf(NULL, "Cannot open /proc: %s", zbx_strerror(errno)));
 		return SYSINFO_RET_FAIL;
 	}
 
-	while (NULL != (entries = readdir(dir)))
+	while (NULL != (entries = zbx_readdir(dir)))
 	{
 		zbx_fclose(f_cmd);
 		zbx_fclose(f_stat);
@@ -785,12 +785,12 @@ int	PROC_NUM(AGENT_REQUEST *request, AGENT_RESULT *result)
 
 		zbx_snprintf(tmp, sizeof(tmp), "/proc/%s/cmdline", entries->d_name);
 
-		if (NULL == (f_cmd = fopen(tmp, "r")))
+		if (NULL == (f_cmd = zbx_fopen(tmp, "r")))
 			continue;
 
 		zbx_snprintf(tmp, sizeof(tmp), "/proc/%s/status", entries->d_name);
 
-		if (NULL == (f_stat = fopen(tmp, "r")))
+		if (NULL == (f_stat = zbx_fopen(tmp, "r")))
 			continue;
 
 		if (FAIL == check_procname(f_cmd, f_stat, procname))
@@ -809,7 +809,7 @@ int	PROC_NUM(AGENT_REQUEST *request, AGENT_RESULT *result)
 	}
 	zbx_fclose(f_cmd);
 	zbx_fclose(f_stat);
-	closedir(dir);
+	zbx_closedir(dir);
 out:
 	SET_UI64_RESULT(result, proccount);
 
@@ -839,11 +839,11 @@ static int	proc_get_process_name(pid_t pid, char **procname)
 
 	zbx_snprintf(tmp, sizeof(tmp), "/proc/%d/stat", (int)pid);
 
-	if (-1 == (fd = open(tmp, O_RDONLY)))
+	if (-1 == (fd = zbx_open(tmp, O_RDONLY)))
 		return FAIL;
 
 	n = read(fd, tmp, sizeof(tmp));
-	close(fd);
+	zbx_close(fd);
 
 	if (-1 == n)
 		return FAIL;
@@ -887,7 +887,7 @@ static int	proc_get_process_cmdline(pid_t pid, char **cmdline, size_t *cmdline_n
 	*cmdline_nbytes = 0;
 	zbx_snprintf(tmp, sizeof(tmp), "/proc/%d/cmdline", (int)pid);
 
-	if (-1 == (fd = open(tmp, O_RDONLY)))
+	if (-1 == (fd = zbx_open(tmp, O_RDONLY)))
 		return FAIL;
 
 	*cmdline = zbx_malloc(NULL, cmdline_alloc);
@@ -903,7 +903,7 @@ static int	proc_get_process_cmdline(pid_t pid, char **cmdline, size_t *cmdline_n
 		}
 	}
 
-	close(fd);
+	zbx_close(fd);
 
 	if (0 < *cmdline_nbytes)
 	{
@@ -1005,7 +1005,7 @@ static int	proc_read_cpu_util(zbx_procstat_util_t *procutil)
 
 	zbx_snprintf(tmp, sizeof(tmp), "/proc/%d/stat", (int)procutil->pid);
 
-	if (-1 == (fd = open(tmp, O_RDONLY)))
+	if (-1 == (fd = zbx_open(tmp, O_RDONLY)))
 		return -errno;
 
 	if (-1 == (n = read(fd, tmp, sizeof(tmp) - 1)))
@@ -1063,7 +1063,7 @@ static int	proc_read_cpu_util(zbx_procstat_util_t *procutil)
 
 	ret = -ENODATA;
 out:
-	close(fd);
+	zbx_close(fd);
 
 	return ret;
 }
@@ -1239,7 +1239,6 @@ out:
 int	zbx_proc_get_processes(zbx_vector_ptr_t *processes, unsigned int flags)
 {
 	const char		*__function_name = "zbx_proc_get_processes";
-
 	DIR			*dir;
 	struct dirent		*entries;
 	int			ret = FAIL, pid;
@@ -1247,10 +1246,10 @@ int	zbx_proc_get_processes(zbx_vector_ptr_t *processes, unsigned int flags)
 
 	zabbix_log(LOG_LEVEL_TRACE, "In %s()", __function_name);
 
-	if (NULL == (dir = opendir("/proc")))
+	if (NULL == (dir = zbx_opendir("/proc")))
 		goto out;
 
-	while (NULL != (entries = readdir(dir)))
+	while (NULL != (entries = zbx_readdir(dir)))
 	{
 		/* skip entries not containing pids */
 		if (FAIL == is_uint32(entries->d_name, &pid))
@@ -1262,7 +1261,7 @@ int	zbx_proc_get_processes(zbx_vector_ptr_t *processes, unsigned int flags)
 		zbx_vector_ptr_append(processes, proc);
 	}
 
-	closedir(dir);
+	zbx_closedir(dir);
 
 	ret = SUCCEED;
 out:

@@ -49,6 +49,7 @@ int	VFS_FILE_SIZE(AGENT_REQUEST *request, AGENT_RESULT *result)
 	}
 
 	if (0 != zbx_stat(filename, &buf))
+
 	{
 		SET_MSG_RESULT(result, zbx_dsprintf(NULL, "Cannot obtain file information: %s", zbx_strerror(errno)));
 		goto err;
@@ -248,7 +249,7 @@ int	VFS_FILE_CONTENTS(AGENT_REQUEST *request, AGENT_RESULT *result)
 	ret = SYSINFO_RET_OK;
 err:
 	if (-1 != f)
-		close(f);
+		zbx_close(f);
 
 	return ret;
 }
@@ -369,7 +370,7 @@ int	VFS_FILE_REGEXP(AGENT_REQUEST *request, AGENT_RESULT *result)
 	ret = SYSINFO_RET_OK;
 err:
 	if (-1 != f)
-		close(f);
+		zbx_close(f);
 
 	return ret;
 }
@@ -481,7 +482,7 @@ int	VFS_FILE_REGMATCH(AGENT_REQUEST *request, AGENT_RESULT *result)
 	ret = SYSINFO_RET_OK;
 err:
 	if (-1 != f)
-		close(f);
+		zbx_close(f);
 
 	return ret;
 }
@@ -561,7 +562,7 @@ int	VFS_FILE_MD5SUM(AGENT_REQUEST *request, AGENT_RESULT *result)
 	ret = SYSINFO_RET_OK;
 err:
 	if (-1 != f)
-		close(f);
+		zbx_close(f);
 
 	return ret;
 }
@@ -697,7 +698,7 @@ int	VFS_FILE_CKSUM(AGENT_REQUEST *request, AGENT_RESULT *result)
 	ret = SYSINFO_RET_OK;
 err:
 	if (-1 != f)
-		close(f);
+		zbx_close(f);
 
 	return ret;
 }

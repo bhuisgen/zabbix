@@ -152,8 +152,36 @@ static void	rotate_log(const char *filename)
 		return;
 	}
 
-	if (0 != zbx_stat(filename, &buf))
-		return;
+#ifdef _WINDOWS
+	int	stat, fd;
+	wchar_t	*wpath;
+
+	wpath = zbx_utf8_to_unicode(filename);
+
+	if (-1 == (stat = _wstat64(wpath, &buf)))
+		goto out;
+
+	if (0 != S_ISDIR(buf->st_mode) || 0 != buf->st_size)
+		goto out;
+
+	/* In the case of symlinks _wstat64 returns zero file size.   */
+	/* Try to work around it by opening the file and using fstat. */
+
+	stat = -1;
+
+	if (-1 != (fd = _wopen(wpath, O_RDONLY)))
+	{
+		stat = _fstat64(fd, &buf);
+		_close(fd);
+	}
+out:
+	zbx_free(wpath);
+
+	if (0 != stat)
+#else
+	if (0 != stat(filename, &buf))
+#endif
+	    return;
 
 	new_size = buf.st_size;
 
@@ -205,7 +233,7 @@ static void	rotate_log(const char *filename)
 						filename,
 						filename_old);
 
-				zbx_fclose(log_file);
+				fclose(log_file);
 
 				new_size = 0;
 			}
@@ -309,7 +337,7 @@ int	zabbix_open_log(int type, int level, const char *filename)
 		}
 
 		strscpy(log_filename, filename);
-		zbx_fclose(log_file);
+		fclose(log_file);
 	}
 	else if (LOG_TYPE_CONSOLE == type)
 	{
@@ -449,7 +477,7 @@ void	__zbx_zabbix_log(int level, const char *fmt, ...)
 
 			fprintf(log_file, "\n");
 
-			zbx_fclose(log_file);
+			fclose(log_file);
 		}
 
 		unlock_log();

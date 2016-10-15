@@ -73,7 +73,7 @@ static int	VM_MEMORY_CACHED(AGENT_RESULT *result)
 	zbx_uint64_t	value;
 	int		res;
 
-	if (NULL == (f = fopen("/proc/meminfo", "r")))
+	if (NULL == (f = zbx_fopen("/proc/meminfo", "r")))
 	{
 		SET_MSG_RESULT(result, zbx_dsprintf(NULL, "Cannot open /proc/meminfo: %s", zbx_strerror(errno)));
 		return SYSINFO_RET_FAIL;
@@ -140,7 +140,7 @@ static int	VM_MEMORY_AVAILABLE(AGENT_RESULT *result)
 
 	/* try MemAvailable (present since Linux 3.14), falling back to a calculation based on sysinfo() and Cached */
 
-	if (NULL == (f = fopen("/proc/meminfo", "r")))
+	if (NULL == (f = zbx_fopen("/proc/meminfo", "r")))
 	{
 		SET_MSG_RESULT(result, zbx_dsprintf(NULL, "Cannot open /proc/meminfo: %s", zbx_strerror(errno)));
 		return SYSINFO_RET_FAIL;

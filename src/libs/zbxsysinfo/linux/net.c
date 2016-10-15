@@ -211,7 +211,7 @@ static int	get_net_stat(const char *if_name, net_stat_t *result, char **error)
 		return SYSINFO_RET_FAIL;
 	}
 
-	if (NULL == (f = fopen("/proc/net/dev", "r")))
+	if (NULL == (f = zbx_fopen("/proc/net/dev", "r")))
 	{
 		*error = zbx_dsprintf(NULL, "Cannot open /proc/net/dev: %s", zbx_strerror(errno));
 		return SYSINFO_RET_FAIL;
@@ -277,9 +277,9 @@ static int	get_net_stat(const char *if_name, net_stat_t *result, char **error)
 static int    proc_read_tcp_listen(const char *filename, char **buffer, int *buffer_alloc)
 {
 	int     n, fd, ret = -1, offset = 0;
-	char    *start, *end;
+	char	*start, *end;
 
-	if (-1 == (fd = open(filename, O_RDONLY)))
+	if (-1 == (fd = zbx_open(filename, O_RDONLY)))
 		return -1;
 
 	while (0 != (n = read(fd, *buffer + offset, *buffer_alloc - offset)))
@@ -338,7 +338,7 @@ static int    proc_read_tcp_listen(const char *filename, char **buffer, int *buf
 
 	ret = offset;
 out:
-	close(fd);
+	zbx_close(fd);
 
 	return ret;
 }
@@ -362,7 +362,7 @@ static int	proc_read_file(const char *filename, char **buffer, int *buffer_alloc
 {
 	int	n, fd, ret = -1, offset = 0;
 
-	if (-1 == (fd = open(filename, O_RDONLY)))
+	if (-1 == (fd = zbx_open(filename, O_RDONLY)))
 		return -1;
 
 	while (0 != (n = read(fd, *buffer + offset, *buffer_alloc - offset)))
@@ -381,7 +381,7 @@ static int	proc_read_file(const char *filename, char **buffer, int *buffer_alloc
 
 	ret = offset;
 out:
-	close(fd);
+	zbx_close(fd);
 
 	return ret;
 }
@@ -529,7 +529,7 @@ int	NET_IF_DISCOVERY(AGENT_REQUEST *request, AGENT_RESULT *result)
 
 	ZBX_UNUSED(request);
 
-	if (NULL == (f = fopen("/proc/net/dev", "r")))
+	if (NULL == (f = zbx_fopen("/proc/net/dev", "r")))
 	{
 		SET_MSG_RESULT(result, zbx_dsprintf(NULL, "Cannot open /proc/net/dev: %s", zbx_strerror(errno)));
 		return SYSINFO_RET_FAIL;

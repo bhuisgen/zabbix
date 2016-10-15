@@ -18,60 +18,121 @@
 **/
 
 #include "common.h"
+#include "log.h"
 
-#if defined(_WINDOWS)
-int	__zbx_open(const char *pathname, int flags)
+#ifndef _WINDOWS
+char	*CONFIG_ROOT_FILESYSTEM;
+
+/******************************************************************************
+ *                                                                            *
+ * Function: __zbx_zbx_rootfs_path                                            *
+ *                                                                            *
+ * Purpose: convert a path to rootfs path                                     *
+ *                                                                            *
+ * Parameters: dst - destination buffer pointer                               *
+ *             count - size of destination buffer                             *
+ *             src - source buffer pointer                                    *
+ *                                                                            *
+ * Author: Boris HUISGEN                                                      *
+ *                                                                            *
+ ******************************************************************************/
+
+void	__zbx_zbx_rootfs_path(char *dst, size_t count, const char *src)
 {
+	if ((CONFIG_ROOT_FILESYSTEM == NULL) || (strcmp(CONFIG_ROOT_FILESYSTEM, "/") == 0))
+	{
+		zbx_snprintf(dst, count, "%s", src);
+	}
+	else
+	{
+		zbx_snprintf(dst, count, "%s%s", CONFIG_ROOT_FILESYSTEM, src);
+	}
+
+	zabbix_log(LOG_LEVEL_DEBUG, "Rootfs path conversion: \"%s\" -> \"%s\"", src, dst);
+}
+
+#endif
+
+int	zbx_stat(const char *path, zbx_stat_t *buf)
+{
+#ifdef _WINDOWS
+	int	ret, fd;
+	wchar_t	*wpath;
+
+	wpath = zbx_utf8_to_unicode(path);
+
+	if (-1 == (ret = _wstat64(wpath, buf)))
+		goto out;
+
+	if (0 != S_ISDIR(buf->st_mode) || 0 != buf->st_size)
+		goto out;
+
+	/* In the case of symlinks _wstat64 returns zero file size.   */
+	/* Try to work around it by opening the file and using fstat. */
+
+	ret = -1;
+
+	if (-1 != (fd = _wopen(wpath, O_RDONLY)))
+	{
+		ret = _fstat64(fd, buf);
+		_close(fd);
+	}
+out:
+	zbx_free(wpath);
+
+	return ret;
+#else
+	char 	rootpath[MAX_STRING_LEN];
+	int	ret;
+
+	__zbx_zbx_rootfs_path(rootpath, sizeof(rootpath), path);
+
+	ret = stat(rootpath, buf);
+
+	return ret;
+#endif
+}
+
+int	zbx_open(const char *pathname, int flags)
+{
+#ifdef _WINDOWS
 	int	ret;
 	wchar_t	*wpathname;
 
 	wpathname = zbx_utf8_to_unicode(pathname);
-	ret = _wopen(wpathname, flags);
+	ret = _wopen(wpathname, flags | O_BINARY);
 	zbx_free(wpathname);
 
 	return ret;
-}
+#else
+	char 	rootpath[MAX_STRING_LEN];
+	int	ret;
+
+	__zbx_zbx_rootfs_path(rootpath, sizeof(rootpath), pathname);
+
+	ret = open(rootpath, flags);
+
+	return ret;
 #endif
-
-void	find_cr_lf_szbyte(const char *encoding, const char **cr, const char **lf, size_t *szbyte)
-{
-	/* default is single-byte character set */
-	*cr = "\r";
-	*lf = "\n";
-	*szbyte = 1;
-
-	if ('\0' != *encoding)
-	{
-		if (0 == strcasecmp(encoding, "UNICODE") || 0 == strcasecmp(encoding, "UNICODELITTLE") ||
-				0 == strcasecmp(encoding, "UTF-16") || 0 == strcasecmp(encoding, "UTF-16LE") ||
-				0 == strcasecmp(encoding, "UTF16") || 0 == strcasecmp(encoding, "UTF16LE"))
-		{
-			*cr = "\r\0";
-			*lf = "\n\0";
-			*szbyte = 2;
-		}
-		else if (0 == strcasecmp(encoding, "UNICODEBIG") || 0 == strcasecmp(encoding, "UNICODEFFFE") ||
-				0 == strcasecmp(encoding, "UTF-16BE") || 0 == strcasecmp(encoding, "UTF16BE"))
-		{
-			*cr = "\0\r";
-			*lf = "\0\n";
-			*szbyte = 2;
-		}
-		else if (0 == strcasecmp(encoding, "UTF-32") || 0 == strcasecmp(encoding, "UTF-32LE") ||
-				0 == strcasecmp(encoding, "UTF32") || 0 == strcasecmp(encoding, "UTF32LE"))
-		{
-			*cr = "\r\0\0\0";
-			*lf = "\n\0\0\0";
-			*szbyte = 4;
-		}
-		else if (0 == strcasecmp(encoding, "UTF-32BE") || 0 == strcasecmp(encoding, "UTF32BE"))
-		{
-			*cr = "\0\0\0\r";
-			*lf = "\0\0\0\n";
-			*szbyte = 4;
-		}
-	}
 }
+
+int	zbx_close(int fd)
+{
+#ifdef _WINDOWS
+	int ret;
+
+	ret = _close(fd);
+
+	return ret;
+#else
+	int ret;
+
+	ret = close(fd);
+
+	return ret;
+#endif
+}
+
 
 /******************************************************************************
  *                                                                            *
@@ -144,6 +205,133 @@ int	zbx_read(int fd, char *buf, size_t count, const char *encoding)
 	return (int)i;
 }
 
+#ifndef _WINDOWS
+
+ssize_t zbx_readlink(const char *pathname, char *buf, size_t bufsiz)
+{
+	char 	rootpath[MAX_STRING_LEN];
+	ssize_t bytes;
+
+	__zbx_zbx_rootfs_path(rootpath, sizeof(rootpath), pathname);
+
+	bytes = readlink(rootpath, buf, bufsiz);
+
+	return bytes;
+}
+
+DIR*	zbx_opendir(const char *name)
+{
+	char 	rootpath[MAX_STRING_LEN];
+	DIR*	dir;
+
+	__zbx_zbx_rootfs_path(rootpath, sizeof(rootpath), name);
+
+	dir = opendir(rootpath);
+
+	return dir;
+}
+
+int	zbx_closedir(DIR *dirp)
+{
+	int ret;
+
+	ret = closedir(dirp);
+
+	return ret;
+}
+
+
+struct dirent*	zbx_readdir(DIR *dirp)
+{
+	struct dirent	*d_ent;
+
+	d_ent = readdir(dirp);
+
+	return d_ent;
+}
+
+#endif
+
+FILE*	zbx_fopen(const char *pathname, const char *mode)
+{
+#ifdef _WINDOWS
+	FILE*	fd;
+	wchar_t	*pathname;
+	wchar_t	*wmode;
+
+	wpathname = zbx_utf8_to_unicode(path);
+	wmode = zbx_utf8_to_unicode(mode);
+	fd = _wfopen(wpathname, wmode);
+
+	zbx_free(wpathname);
+	zbx_free(wmode);
+
+	return fd;
+#else
+	char 	rootpath[MAX_STRING_LEN];
+	FILE*	fd;
+
+	__zbx_zbx_rootfs_path(rootpath, sizeof(rootpath), pathname);
+
+	fd = fopen(rootpath, mode);
+
+	return fd;
+#endif
+}
+
+int	zbx_fclose(FILE *file)
+{
+	int ret=0;
+
+	if (file)
+	{
+	    ret = fclose(file);
+	    file = NULL;
+	}
+
+	return ret;
+}
+
+void	find_cr_lf_szbyte(const char *encoding, const char **cr, const char **lf, size_t *szbyte)
+{
+	/* default is single-byte character set */
+	*cr = "\r";
+	*lf = "\n";
+	*szbyte = 1;
+
+	if ('\0' != *encoding)
+	{
+		if (0 == strcasecmp(encoding, "UNICODE") || 0 == strcasecmp(encoding, "UNICODELITTLE") ||
+				0 == strcasecmp(encoding, "UTF-16") || 0 == strcasecmp(encoding, "UTF-16LE") ||
+				0 == strcasecmp(encoding, "UTF16") || 0 == strcasecmp(encoding, "UTF16LE"))
+		{
+			*cr = "\r\0";
+			*lf = "\n\0";
+			*szbyte = 2;
+		}
+		else if (0 == strcasecmp(encoding, "UNICODEBIG") || 0 == strcasecmp(encoding, "UNICODEFFFE") ||
+				0 == strcasecmp(encoding, "UTF-16BE") || 0 == strcasecmp(encoding, "UTF16BE"))
+		{
+			*cr = "\0\r";
+			*lf = "\0\n";
+			*szbyte = 2;
+		}
+		else if (0 == strcasecmp(encoding, "UTF-32") || 0 == strcasecmp(encoding, "UTF-32LE") ||
+				0 == strcasecmp(encoding, "UTF32") || 0 == strcasecmp(encoding, "UTF32LE"))
+		{
+			*cr = "\r\0\0\0";
+			*lf = "\n\0\0\0";
+			*szbyte = 4;
+		}
+		else if (0 == strcasecmp(encoding, "UTF-32BE") || 0 == strcasecmp(encoding, "UTF32BE"))
+		{
+			*cr = "\0\0\0\r";
+			*lf = "\0\0\0\n";
+			*szbyte = 4;
+		}
+	}
+}
+
 int	zbx_is_regular_file(const char *path)
 {
 	zbx_stat_t	st;
@@ -153,3 +341,4 @@ int	zbx_is_regular_file(const char *path)
 
 	return FAIL;
 }
+

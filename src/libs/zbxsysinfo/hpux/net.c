@@ -386,12 +386,12 @@ static int	get_net_stat(Ext_mib_t *mib, const char *if_name)
 {
 	int	fd, ppa;
 
-	if (-1 == (fd = open("/dev/dlpi", O_RDWR)))
+	if (-1 == (fd = zbx_open("/dev/dlpi", O_RDWR)))
 		return FAIL;
 
 	if (FAIL == get_ppa(fd, if_name, &ppa))
 	{
-		close(fd);
+		zbx_close(fd);
 		return FAIL;
 	}
 
@@ -403,7 +403,7 @@ static int	get_net_stat(Ext_mib_t *mib, const char *if_name)
 
 	dlpi_detach(fd);
 
-	close(fd);
+	zbx_close(fd);
 
 	return SUCCEED;
 }

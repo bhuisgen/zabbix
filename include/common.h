@@ -70,6 +70,10 @@
 #define ON	1
 #define OFF	0
 
+#ifndef _WINDOWS
+extern char *CONFIG_ROOT_FILESYSTEM;
+#endif
+
 #if defined(_WINDOWS)
 #	define	ZBX_SERVICE_NAME_LEN	64
 extern char ZABBIX_SERVICE_NAME[ZBX_SERVICE_NAME_LEN];
@@ -762,18 +766,6 @@ do				\
 }				\
 while (0)
 
-#define zbx_fclose(file)	\
-				\
-do				\
-{				\
-	if (file)		\
-	{			\
-		fclose(file);	\
-		file = NULL;	\
-	}			\
-}				\
-while (0)
-
 #define THIS_SHOULD_NEVER_HAPPEN	zbx_error("ERROR [file:%s,line:%d] "				\
 							"Something impossible has just happened.",	\
 							__FILE__, __LINE__)
@@ -1133,14 +1125,23 @@ zbx_uint64_t	suffix2factor(char c);
 
 #if defined(_WINDOWS)
 typedef struct __stat64	zbx_stat_t;
-int	__zbx_stat(const char *path, zbx_stat_t *buf);
-int	__zbx_open(const char *pathname, int flags);
 #else
 typedef struct stat	zbx_stat_t;
 #endif	/* _WINDOWS */
 
-void	find_cr_lf_szbyte(const char *encoding, const char **cr, const char **lf, size_t *szbyte);
+int	zbx_stat(const char *path, zbx_stat_t *buf);
+int	zbx_open(const char *pathname, int flags);
+int	zbx_close(int fd);
 int	zbx_read(int fd, char *buf, size_t count, const char *encoding);
+#ifndef _WINDOWS
+ssize_t	zbx_readlink(const char *pathname, char *buf, size_t bufsiz);
+DIR*	zbx_opendir(const char *name);
+int	zbx_closedir(DIR *dirp);
+struct dirent *zbx_readdir(DIR *dirp);
+#endif
+FILE* 	zbx_fopen(const char *pathname, const char *mode);
+int	zbx_fclose(FILE *file);
+void	find_cr_lf_szbyte(const char *encoding, const char **cr, const char **lf, size_t *szbyte);
 int	zbx_is_regular_file(const char *path);
 
 int	MAIN_ZABBIX_ENTRY(int flags);

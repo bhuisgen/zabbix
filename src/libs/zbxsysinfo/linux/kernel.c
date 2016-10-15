@@ -26,7 +26,7 @@ static int	read_uint64_from_procfs(const char *path, zbx_uint64_t *value)
 	char	line[MAX_STRING_LEN];
 	FILE	*f;
 
-	if (NULL != (f = fopen(path, "r")))
+	if (NULL != (f = zbx_fopen(path, "r")))
 	{
 		if (NULL != fgets(line, sizeof(line), f))
 		{

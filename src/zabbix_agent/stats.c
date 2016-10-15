@@ -99,10 +99,13 @@ static int	zbx_get_cpu_num()
 
 	return ncpu;
 #elif defined(HAVE_PROC_CPUINFO)
+	char	path[MAX_STRING_LEN];
 	FILE	*f = NULL;
 	int	ncpu = 0;
 
-	if (NULL == (file = fopen("/proc/cpuinfo", "r")))
+	zbx_rootfs_path(path, sizeof(path), "/proc/cpuinfo");
+
+	if (NULL == (file = zbx_fopen(path, "r")))
 		goto return_one;
 
 	while (NULL != fgets(line, 1024, file))

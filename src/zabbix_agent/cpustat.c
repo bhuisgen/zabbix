@@ -356,7 +356,7 @@ static void	update_cpustats(ZBX_CPUS_STAT_DATA *pcpus)
 
 #if defined(HAVE_PROC_STAT)
 
-	if (NULL == (file = fopen(filename, "r")))
+	if (NULL == (file = zbx_fopen(filename, "r")))
 	{
 		zbx_error("cannot open [%s]: %s", filename, zbx_strerror(errno));
 		ZBX_SET_CPUS_NOTSUPPORTED();
