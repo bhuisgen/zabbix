@@ -91,7 +91,7 @@ int	get_diskstat(const char *devname, zbx_uint64_t *dstat)
 			dev_exists = SUCCEED;
 	}
 
-	if (NULL == (f = fopen(INFO_FILE_NAME, "r")))
+	if (NULL == (f = zbx_fopen(INFO_FILE_NAME, "r")))
 		return FAIL;
 
 	while (NULL != fgets(tmp, sizeof(tmp), f))
@@ -150,7 +150,7 @@ static int	get_kernel_devname(const char *devname, char *kernel_devname, size_t 
 		strscpy(dev_path, ZBX_DEV_PFX);
 	strscat(dev_path, devname);
 
-	if (zbx_stat(dev_path, &dev_st) < 0 || NULL == (f = fopen(INFO_FILE_NAME, "r")))
+	if (zbx_stat(dev_path, &dev_st) < 0 || NULL == (f = zbx_fopen(INFO_FILE_NAME, "r")))
 		return ret;
 
 	while (NULL != fgets(tmp, sizeof(tmp), f))

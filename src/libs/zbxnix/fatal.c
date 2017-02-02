@@ -315,7 +315,7 @@ void	print_fatal_info(void *context)
 
 	zabbix_log(LOG_LEVEL_CRIT, "=== Memory map: ===");
 
-	if (NULL != (fd = fopen("/proc/self/maps", "r")))
+	if (NULL != (fd = zbx_fopen("/proc/self/maps", "r")))
 	{
 		char line[1024];
 

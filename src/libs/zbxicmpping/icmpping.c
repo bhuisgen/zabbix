@@ -226,7 +226,7 @@ static int	process_ping(ZBX_FPING_HOST *hosts, int hosts_count, int count, int i
 	zbx_snprintf(tmp, sizeof(tmp), "%s %s 2>&1 <%s", CONFIG_FPING_LOCATION, params, filename);
 #endif	/* HAVE_IPV6 */
 
-	if (NULL == (f = fopen(filename, "w")))
+	if (NULL == (f = zbx_fopen(filename, "w")))
 	{
 		zbx_snprintf(error, max_error_len, "%s: %s", filename, zbx_strerror(errno));
 		return ret;
@@ -240,7 +240,7 @@ static int	process_ping(ZBX_FPING_HOST *hosts, int hosts_count, int count, int i
 		fprintf(f, "%s\n", hosts[i].addr);
 	}
 
-	fclose(f);
+	zbx_fclose(f);
 
 	zabbix_log(LOG_LEVEL_DEBUG, "%s", tmp);
 

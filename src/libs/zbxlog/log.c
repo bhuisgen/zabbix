@@ -122,7 +122,7 @@ void	zbx_redirect_stdio(const char *filename)
 
 	close(fd);
 
-	if (-1 == (fd = open(default_file, O_RDONLY)))
+	if (-1 == (fd = zbx_open(default_file, O_RDONLY)))
 	{
 		zbx_error("cannot open \"%s\": %s", default_file, zbx_strerror(errno));
 		exit(EXIT_FAILURE);
@@ -169,7 +169,7 @@ static void	rotate_log(const char *filename)
 		{
 			FILE	*log_file = NULL;
 
-			if (NULL != (log_file = fopen(filename, "w")))
+			if (NULL != (log_file = zbx_fopen(filename, "w")))
 			{
 				long		milliseconds;
 				struct tm	tm;
@@ -302,7 +302,7 @@ int	zabbix_open_log(int type, int level, const char *filename)
 			exit(EXIT_FAILURE);
 		}
 
-		if (NULL == (log_file = fopen(filename, "a+")))
+		if (NULL == (log_file = zbx_fopen(filename, "a+")))
 		{
 			zbx_error("unable to open log file [%s]: %s", filename, zbx_strerror(errno));
 			exit(EXIT_FAILURE);
@@ -424,7 +424,7 @@ void	__zbx_zabbix_log(int level, const char *fmt, ...)
 
 		rotate_log(log_filename);
 
-		if (NULL != (log_file = fopen(log_filename, "a+")))
+		if (NULL != (log_file = zbx_fopen(log_filename, "a+")))
 		{
 			long		milliseconds;
 			struct tm	tm;

@@ -1538,7 +1538,7 @@ static void	zbx_read_psk_file(void)
 							/* 1 byte for terminating '\0' */
 	char		buf_bin[HOST_TLS_PSK_LEN / 2];	/* up to 256 bytes of binary PSK */
 
-	if (NULL == (f = fopen(CONFIG_TLS_PSK_FILE, "r")))
+	if (NULL == (f = zbx_fopen(CONFIG_TLS_PSK_FILE, "r")))
 	{
 		zabbix_log(LOG_LEVEL_CRIT, "cannot open file \"%s\": %s", CONFIG_TLS_PSK_FILE, zbx_strerror(errno));
 		goto out;

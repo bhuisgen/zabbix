@@ -18,20 +18,181 @@
 **/
 
 #include "common.h"
+#include "log.h"
 
-#if defined(_WINDOWS)
-int	__zbx_open(const char *pathname, int flags)
+#ifndef _WINDOWS
+char	*CONFIG_ROOT_FILESYSTEM;
+#endif
+
+#ifdef _WINDOWS
+
+int	zbx_stat(const char *path, zbx_stat_t *buf)
+{
+	int	ret, fd;
+	wchar_t	*wpath;
+
+	wpath = zbx_utf8_to_unicode(path);
+
+	if (-1 == (ret = _wstat64(wpath, buf)))
+		goto out;
+
+	if (0 != S_ISDIR(buf->st_mode) || 0 != buf->st_size)
+		goto out;
+
+	/* In the case of symlinks _wstat64 returns zero file size.   */
+	/* Try to work around it by opening the file and using fstat. */
+
+	ret = -1;
+
+	if (-1 != (fd = _wopen(wpath, O_RDONLY)))
+	{
+		ret = _fstat64(fd, buf);
+		_close(fd);
+	}
+out:
+	zbx_free(wpath);
+
+	return ret;
+}
+
+#else
+
+int	zbx_stat(const char *path, zbx_stat_t *buf)
+{
+	int ret;
+
+	ret = stat(path, buf);
+
+	return ret;
+}
+
+#endif
+
+#ifdef _WINDOWS
+
+int	zbx_open(const char *pathname, int flags)
 {
 	int	ret;
 	wchar_t	*wpathname;
 
 	wpathname = zbx_utf8_to_unicode(pathname);
-	ret = _wopen(wpathname, flags);
+	ret = _wopen(wpathname, flags | O_BINARY);
 	zbx_free(wpathname);
 
 	return ret;
 }
+
+#else
+
+int	zbx_open(const char *pathname, int flags)
+{
+	int ret;
+
+	ret = open(pathname, flags);
+
+	return ret;
+}
 #endif
+
+#ifdef _WINDOWS
+
+int	zbx_close(int fd)
+{
+	int ret;
+
+	ret = _close(fd);
+
+	return ret;
+}
+
+#else
+
+int	zbx_close(int fd)
+{
+	int ret;
+
+	ret = close(fd);
+
+	return ret;
+}
+
+#endif
+
+#if !defined(_WINDOWS)
+
+DIR*	zbx_opendir(const char *name)
+{
+	DIR* dir;
+
+	dir = opendir(name);
+
+	return dir;
+}
+
+int	zbx_closedir(DIR *dirp)
+{
+	int ret;
+
+	ret = closedir(dirp);
+
+	return ret;
+}
+
+
+struct dirent*	zbx_readdir(DIR *dirp)
+{
+	struct dirent	*d_ent;
+
+	d_ent = readdir(dirp);
+
+	return d_ent;
+}
+
+#endif
+
+#ifdef _WINDOWS
+
+FILE*	zbx_fopen(const char *pathname, const char *mode)
+{
+	FILE*	fd;
+	wchar_t	*pathname;
+	wchar_t	*wmode;
+
+	wpathname = zbx_utf8_to_unicode(path);
+	wmode = zbx_utf8_to_unicode(mode);
+	fd = _wfopen(wpathname, wmode);
+
+	zbx_free(wpathname);
+	zbx_free(wmode);
+
+	return fd;
+}
+
+#else
+
+FILE*	zbx_fopen(const char *pathname, const char *mode)
+{
+	FILE* fd;
+
+	fd = fopen(pathname, mode);
+
+	return fd;
+}
+
+#endif
+
+int	zbx_fclose(FILE *file)
+{
+	int ret=0;
+
+	if (file)
+	{
+	    ret = fclose(file);
+	    file = NULL;
+	}
+
+	return ret;
+}
 
 void	find_cr_lf_szbyte(const char *encoding, const char **cr, const char **lf, size_t *szbyte)
 {
@@ -153,3 +314,21 @@ int	zbx_is_regular_file(const char *path)
 
 	return FAIL;
 }
+
+#ifndef _WINDOWS
+
+void	zbx_rootfs_path(char *dst, size_t size, const char *path)
+{
+	if ((CONFIG_ROOT_FILESYSTEM == NULL) || (strcmp(CONFIG_ROOT_FILESYSTEM, "/") == 0))
+	{
+		zbx_snprintf(dst, size, "%s", path);
+	}
+	else
+	{
+		zbx_snprintf(dst, size, "%s%s", CONFIG_ROOT_FILESYSTEM, path);
+
+		zabbix_log(LOG_LEVEL_DEBUG, "Rootfs path converted: \"%s\" -> \"%s\"", path, dst);
+	}
+}
+
+#endif

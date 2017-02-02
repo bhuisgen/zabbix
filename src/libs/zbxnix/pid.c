@@ -39,7 +39,7 @@ int	create_pid_file(const char *pidfile)
 	/* check if pid file already exists */
 	if (0 == zbx_stat(pidfile, &buf))
 	{
-		if (-1 == (fd = open(pidfile, O_WRONLY | O_APPEND)))
+		if (-1 == (fd = zbx_open(pidfile, O_WRONLY | O_APPEND)))
 		{
 			zbx_error("cannot open PID file [%s]: %s", pidfile, zbx_strerror(errno));
 			return FAIL;
@@ -47,17 +47,17 @@ int	create_pid_file(const char *pidfile)
 
 		if (-1 == fcntl(fd, F_SETLK, &fl))
 		{
-			close(fd);
+			zbx_close(fd);
 			zbx_error("Is this process already running? Could not lock PID file [%s]: %s",
 					pidfile, zbx_strerror(errno));
 			return FAIL;
 		}
 
-		close(fd);
+		zbx_close(fd);
 	}
 
 	/* open pid file */
-	if (NULL == (fpid = fopen(pidfile, "w")))
+	if (NULL == (fpid = zbx_fopen(pidfile, "w")))
 	{
 		zbx_error("cannot create PID file [%s]: %s", pidfile, zbx_strerror(errno));
 		return FAIL;
@@ -82,7 +82,7 @@ int	read_pid_file(const char *pidfile, pid_t *pid, char *error, size_t max_error
 	int	ret = FAIL;
 	FILE	*fpid;
 
-	if (NULL == (fpid = fopen(pidfile, "r")))
+	if (NULL == (fpid = zbx_fopen(pidfile, "r")))
 	{
 		zbx_snprintf(error, max_error_len, "cannot open PID file [%s]: %s", pidfile, zbx_strerror(errno));
 		return ret;
