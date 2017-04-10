@@ -587,7 +587,7 @@ static int	is_same_file(const struct st_logfile *old, const struct st_logfile *n
 			else
 				ret = ZBX_SAME_FILE_ERROR;
 
-			if (0 != close(f))
+			if (0 != zbx_close(f))
 			{
 				if (ZBX_SAME_FILE_ERROR != ret)
 				{
@@ -1277,7 +1277,7 @@ clean:
 	DIR		*dir = NULL;
 	struct dirent	*d_ent = NULL;
 
-	if (NULL == (dir = opendir(directory)))
+	if (NULL == (dir = zbx_opendir(directory)))
 	{
 		*err_msg = zbx_dsprintf(*err_msg, "Cannot open directory \"%s\" for reading: %s", directory,
 				zbx_strerror(errno));
@@ -1287,12 +1287,12 @@ clean:
 	/* on UNIX file systems we always assume that inodes can be used to identify files */
 	*use_ino = 1;
 
-	while (NULL != (d_ent = readdir(dir)))
+	while (NULL != (d_ent = zbx_readdir(dir)))
 	{
 		pick_logfile(directory, d_ent->d_name, mtime, re, logfiles, logfiles_alloc, logfiles_num);
 	}
 
-	if (-1 == closedir(dir))
+	if (-1 == zbx_closedir(dir))
 	{
 		*err_msg = zbx_dsprintf(*err_msg, "Cannot close directory \"%s\": %s", directory, zbx_strerror(errno));
 		return FAIL;
@@ -1456,7 +1456,7 @@ clean1:
 			ret = FAIL;
 #endif	/*_WINDOWS*/
 clean3:
-		if (0 != close(f))
+		if (0 != zbx_close(f))
 		{
 			*err_msg = zbx_dsprintf(*err_msg, "Cannot close file \"%s\": %s", p->filename,
 					zbx_strerror(errno));
@@ -1938,7 +1938,7 @@ static int	process_log(unsigned char flags, const char *filename, zbx_uint64_t *
 				l_size, filename, zbx_strerror(errno));
 	}
 
-	if (0 != close(f))
+	if (0 != zbx_close(f))
 	{
 		*err_msg = zbx_dsprintf(*err_msg, "Cannot close file \"%s\": %s", filename, zbx_strerror(errno));
 		ret = FAIL;
@@ -2146,7 +2146,7 @@ static int	adjust_position_after_jump(struct st_logfile *logfile, zbx_uint64_t *
 		}
 	}
 out:
-	if (0 != close(fd))
+	if (0 != zbx_close(fd))
 	{
 		*err_msg = zbx_dsprintf(*err_msg, "Cannot close file \"%s\": %s", logfile->filename,
 				zbx_strerror(errno));
@@ -2345,6 +2345,7 @@ int	process_logrt(unsigned char flags, const char *filename, zbx_uint64_t *lastl
 		zbx_process_value_func_t process_value, const char *server, unsigned short port, const char *hostname,
 		const char *key, int *jumped, float max_delay, double *start_time, zbx_uint64_t *processed_bytes)
 {
+	char			path[MAX_STRING_LEN];
 	const char		*__function_name = "process_logrt";
 	int			i, j, start_idx, ret = FAIL, logfiles_num = 0, logfiles_alloc = 0, seq = 1,
 				max_old_seq = 0, old_last, from_first_file = 1, last_processed, limit_reached = 0;
@@ -2371,7 +2372,9 @@ int	process_logrt(unsigned char flags, const char *filename, zbx_uint64_t *lastl
 				"seconds back.", (int)(old_mtime - now));
 	}
 
-	if (SUCCEED != make_logfile_list(flags, filename, mtime, &logfiles, &logfiles_alloc, &logfiles_num, use_ino,
+	zbx_rootfs_path(path, sizeof(path), filename);
+
+	if (SUCCEED != make_logfile_list(flags, path, mtime, &logfiles, &logfiles_alloc, &logfiles_num, use_ino,
 			err_msg))
 	{
 		/* an error occurred or a file was not accessible for a log[] or log.count[] item */

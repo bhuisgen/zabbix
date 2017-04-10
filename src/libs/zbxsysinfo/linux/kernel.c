@@ -26,7 +26,7 @@ static int	read_uint64_from_procfs(const char *path, zbx_uint64_t *value)
 	char	line[MAX_STRING_LEN];
 	FILE	*f;
 
-	if (NULL != (f = fopen(path, "r")))
+	if (NULL != (f = zbx_fopen(path, "r")))
 	{
 		if (NULL != fgets(line, sizeof(line), f))
 		{
@@ -41,13 +41,16 @@ static int	read_uint64_from_procfs(const char *path, zbx_uint64_t *value)
 
 int	KERNEL_MAXFILES(AGENT_REQUEST *request, AGENT_RESULT *result)
 {
+	char			path[MAX_STRING_LEN];
 	zbx_uint64_t	value;
 
 	ZBX_UNUSED(request);
 
-	if (SYSINFO_RET_FAIL == read_uint64_from_procfs("/proc/sys/fs/file-max", &value))
+	zbx_rootfs_path(path, sizeof(path), "/proc/sys/fs/file-max");
+
+	if (SYSINFO_RET_FAIL == read_uint64_from_procfs(path, &value))
 	{
-		SET_MSG_RESULT(result, zbx_strdup(NULL, "Cannot obtain data from /proc/sys/fs/file-max."));
+		SET_MSG_RESULT(result, zbx_dsprintf(NULL, "Cannot obtain data from %s.", path));
 		return SYSINFO_RET_FAIL;
 	}
 
@@ -57,13 +60,16 @@ int	KERNEL_MAXFILES(AGENT_REQUEST *request, AGENT_RESULT *result)
 
 int	KERNEL_MAXPROC(AGENT_REQUEST *request, AGENT_RESULT *result)
 {
+	char			path[MAX_STRING_LEN];
 	zbx_uint64_t	value;
 
 	ZBX_UNUSED(request);
 
-	if (SYSINFO_RET_FAIL == read_uint64_from_procfs("/proc/sys/kernel/pid_max", &value))
+	zbx_rootfs_path(path, sizeof(path), "/proc/sys/kernel/pid_max");
+
+	if (SYSINFO_RET_FAIL == read_uint64_from_procfs(path, &value))
 	{
-		SET_MSG_RESULT(result, zbx_strdup(NULL, "Cannot obtain data from /proc/sys/kernel/pid_max."));
+		SET_MSG_RESULT(result, zbx_dsprintf(NULL, "Cannot obtain data from %s.", path));
 		return SYSINFO_RET_FAIL;
 	}
 

@@ -312,6 +312,7 @@ static void	update_cpustats(ZBX_CPUS_STAT_DATA *pcpus)
 
 #if defined(HAVE_PROC_STAT)
 
+	char		path[MAX_STRING_LEN];
 	FILE		*file;
 	char		line[1024];
 	unsigned char	*cpu_status = NULL;
@@ -356,9 +357,11 @@ static void	update_cpustats(ZBX_CPUS_STAT_DATA *pcpus)
 
 #if defined(HAVE_PROC_STAT)
 
-	if (NULL == (file = fopen(filename, "r")))
+	zbx_rootfs_path(path, sizeof(path), filename);
+
+	if (NULL == (file = zbx_fopen(path, "r")))
 	{
-		zbx_error("cannot open [%s]: %s", filename, zbx_strerror(errno));
+		zbx_error("cannot open [%s]: %s", path, zbx_strerror(errno));
 		ZBX_SET_CPUS_NOTSUPPORTED();
 		goto exit;
 	}

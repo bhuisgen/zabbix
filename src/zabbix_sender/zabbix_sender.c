@@ -1092,7 +1092,7 @@ int	main(int argc, char **argv)
 				setvbuf(stdin, (char *)NULL, _IOLBF, 1024);
 			}
 		}
-		else if (NULL == (in = fopen(INPUT_FILE, "r")))
+		else if (NULL == (in = zbx_fopen(INPUT_FILE, "r")))
 		{
 			zabbix_log(LOG_LEVEL_CRIT, "cannot open [%s]: %s", INPUT_FILE, zbx_strerror(errno));
 			goto free;
@@ -1243,7 +1243,7 @@ int	main(int argc, char **argv)
 		}
 
 		if (in != stdin)
-			fclose(in);
+			zbx_fclose(in);
 
 		zbx_free(key_value);
 		zbx_free(in_line);

@@ -192,13 +192,16 @@ int     SYSTEM_CPU_SWITCHES(AGENT_REQUEST *request, AGENT_RESULT *result)
 	int		ret = SYSINFO_RET_FAIL;
 	char		line[MAX_STRING_LEN];
 	zbx_uint64_t	value = 0;
+	char		path[MAX_STRING_LEN];
 	FILE		*f;
 
 	ZBX_UNUSED(request);
 
-	if (NULL == (f = fopen("/proc/stat", "r")))
+	zbx_rootfs_path(path, sizeof(path), "/proc/stat");
+
+	if (NULL == (f = zbx_fopen(path, "r")))
 	{
-		SET_MSG_RESULT(result, zbx_dsprintf(NULL, "Cannot open /proc/stat: %s", zbx_strerror(errno)));
+		SET_MSG_RESULT(result, zbx_dsprintf(NULL, "Cannot open %s: %s", path, zbx_strerror(errno)));
 		return SYSINFO_RET_FAIL;
 	}
 
@@ -217,7 +220,7 @@ int     SYSTEM_CPU_SWITCHES(AGENT_REQUEST *request, AGENT_RESULT *result)
 	zbx_fclose(f);
 
 	if (SYSINFO_RET_FAIL == ret)
-		SET_MSG_RESULT(result, zbx_strdup(NULL, "Cannot find a line with \"ctxt\" in /proc/stat."));
+		SET_MSG_RESULT(result, zbx_dsprintf(NULL, "Cannot find a line with \"ctxt\" in %s.", path));
 
 	return ret;
 }
@@ -227,13 +230,14 @@ int     SYSTEM_CPU_INTR(AGENT_REQUEST *request, AGENT_RESULT *result)
 	int		ret = SYSINFO_RET_FAIL;
 	char		line[MAX_STRING_LEN];
 	zbx_uint64_t	value = 0;
+	char		path[MAX_STRING_LEN];
 	FILE		*f;
 
-	ZBX_UNUSED(request);
+	zbx_rootfs_path(path, sizeof(path), "/proc/stat");
 
-	if (NULL == (f = fopen("/proc/stat", "r")))
+	if (NULL == (f = zbx_fopen(path, "r")))
 	{
-		SET_MSG_RESULT(result, zbx_dsprintf(NULL, "Cannot open /proc/stat: %s", zbx_strerror(errno)));
+		SET_MSG_RESULT(result, zbx_dsprintf(NULL, "Cannot open %s: %s", path, zbx_strerror(errno)));
 		return SYSINFO_RET_FAIL;
 	}
 
@@ -252,7 +256,7 @@ int     SYSTEM_CPU_INTR(AGENT_REQUEST *request, AGENT_RESULT *result)
 	zbx_fclose(f);
 
 	if (SYSINFO_RET_FAIL == ret)
-		SET_MSG_RESULT(result, zbx_strdup(NULL, "Cannot find a line with \"intr\" in /proc/stat."));
+		SET_MSG_RESULT(result, zbx_dsprintf(NULL, "Cannot find a line with \"intr\" in %s.", path));
 
 	return ret;
 }

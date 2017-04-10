@@ -127,14 +127,17 @@ int	VFS_FS_SIZE(AGENT_REQUEST *request, AGENT_RESULT *result)
 int	VFS_FS_DISCOVERY(AGENT_REQUEST *request, AGENT_RESULT *result)
 {
 	char		line[MAX_STRING_LEN], *p, *mpoint, *mtype;
+	char		path[MAX_STRING_LEN];
 	FILE		*f;
 	struct zbx_json	j;
 
 	ZBX_UNUSED(request);
 
-	if (NULL == (f = fopen("/proc/mounts", "r")))
+	zbx_rootfs_path(path, sizeof(path), "/proc/mounts");
+
+	if (NULL == (f = zbx_fopen(path, "r")))
 	{
-		SET_MSG_RESULT(result, zbx_dsprintf(NULL, "Cannot open /proc/mounts: %s", zbx_strerror(errno)));
+		SET_MSG_RESULT(result, zbx_dsprintf(NULL, "Cannot open %s: %s", path, zbx_strerror(errno)));
 		return SYSINFO_RET_FAIL;
 	}
 

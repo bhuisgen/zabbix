@@ -69,19 +69,22 @@ static int	VM_MEMORY_BUFFERS(AGENT_RESULT *result)
 
 static int	VM_MEMORY_CACHED(AGENT_RESULT *result)
 {
+	char		path[MAX_STRING_LEN];
 	FILE		*f;
 	zbx_uint64_t	value;
 	int		res;
 
-	if (NULL == (f = fopen("/proc/meminfo", "r")))
+	zbx_rootfs_path(path, sizeof(path), "/proc/meminfo");
+
+	if (NULL == (f = zbx_fopen(path, "r")))
 	{
-		SET_MSG_RESULT(result, zbx_dsprintf(NULL, "Cannot open /proc/meminfo: %s", zbx_strerror(errno)));
+		SET_MSG_RESULT(result, zbx_dsprintf(NULL, "Cannot open %s: %s", path, zbx_strerror(errno)));
 		return SYSINFO_RET_FAIL;
 	}
 
 	if (FAIL == (res = byte_value_from_proc_file(f, "Cached:", NULL, &value)))
 	{
-		SET_MSG_RESULT(result, zbx_strdup(NULL, "Cannot obtain the value of Cached from /proc/meminfo."));
+		SET_MSG_RESULT(result, zbx_dsprintf(NULL, "Cannot obtain the value of Cached from %s.", path));
 		goto close;
 	}
 
@@ -133,6 +136,7 @@ static int	VM_MEMORY_PUSED(AGENT_RESULT *result)
 
 static int	VM_MEMORY_AVAILABLE(AGENT_RESULT *result)
 {
+	char		path[MAX_STRING_LEN];
 	FILE		*f;
 	zbx_uint64_t	value;
 	struct sysinfo	info;
@@ -140,15 +144,17 @@ static int	VM_MEMORY_AVAILABLE(AGENT_RESULT *result)
 
 	/* try MemAvailable (present since Linux 3.14), falling back to a calculation based on sysinfo() and Cached */
 
-	if (NULL == (f = fopen("/proc/meminfo", "r")))
+	zbx_rootfs_path(path, sizeof(path), "/proc/meminfo");
+
+	if (NULL == (f = zbx_fopen(path, "r")))
 	{
-		SET_MSG_RESULT(result, zbx_dsprintf(NULL, "Cannot open /proc/meminfo: %s", zbx_strerror(errno)));
+		SET_MSG_RESULT(result, zbx_dsprintf(NULL, "Cannot open %s: %s", path, zbx_strerror(errno)));
 		return SYSINFO_RET_FAIL;
 	}
 
 	if (FAIL == (res = byte_value_from_proc_file(f, "MemAvailable:", "Cached:", &value)))
 	{
-		SET_MSG_RESULT(result, zbx_strdup(NULL, "Cannot obtain the value of MemAvailable from /proc/meminfo."));
+		SET_MSG_RESULT(result, zbx_dsprintf(NULL, "Cannot obtain the value of MemAvailable from %s.", path));
 		goto close;
 	}
 
@@ -161,7 +167,7 @@ static int	VM_MEMORY_AVAILABLE(AGENT_RESULT *result)
 
 	if (FAIL == (res = byte_value_from_proc_file(f, "Cached:", NULL, &value)))
 	{
-		SET_MSG_RESULT(result, zbx_strdup(NULL, "Cannot obtain the value of Cached from /proc/meminfo."));
+		SET_MSG_RESULT(result, zbx_dsprintf(NULL, "Cannot obtain the value of Cached from %s.", path));
 		goto close;
 	}
 

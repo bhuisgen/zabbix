@@ -110,7 +110,7 @@ static int	get_if_names(char **if_list, size_t *if_list_alloc, size_t *if_list_o
 	}
 next:
 	zbx_free(buffer);
-	close(s);
+	zbx_close(s);
 
 #if defined (SIOCGLIFCONF)
 	family = AF_INET6;
@@ -121,7 +121,7 @@ next:
 	i = ioctl(s, SIOCGLIFNUM, (char *)&numifs);
 	if (0 == numifs)
 	{
-		close(s);
+		zbx_close(s);
 		return SUCCEED;
 	}
 
@@ -144,7 +144,7 @@ next:
 	}
 end:
 	zbx_free(buffer);
-	close(s);
+	zbx_close(s);
 #endif
 	return SUCCEED;
 }
@@ -386,12 +386,12 @@ static int	get_net_stat(Ext_mib_t *mib, const char *if_name)
 {
 	int	fd, ppa;
 
-	if (-1 == (fd = open("/dev/dlpi", O_RDWR)))
+	if (-1 == (fd = zbx_open("/dev/dlpi", O_RDWR)))
 		return FAIL;
 
 	if (FAIL == get_ppa(fd, if_name, &ppa))
 	{
-		close(fd);
+		zbx_close(fd);
 		return FAIL;
 	}
 
@@ -403,7 +403,7 @@ static int	get_net_stat(Ext_mib_t *mib, const char *if_name)
 
 	dlpi_detach(fd);
 
-	close(fd);
+	zbx_close(fd);
 
 	return SUCCEED;
 }

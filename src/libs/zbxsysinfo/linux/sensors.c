@@ -31,11 +31,14 @@ static char	*locations[] = {"", "/device", NULL};
 
 static void	count_sensor(int do_task, const char *filename, double *aggr, int *cnt)
 {
+	char	path[MAX_STRING_LEN];
 	FILE	*f;
 	char	line[MAX_STRING_LEN];
 	double	value;
 
-	if (NULL == (f = fopen(filename, "r")))
+	zbx_rootfs_path(path, sizeof(path), filename);
+
+	if (NULL == (f = zbx_fopen(path, "r")))
 		return;
 
 	if (NULL == fgets(line, sizeof(line), f))
@@ -92,14 +95,15 @@ static void	count_sensor(int do_task, const char *filename, double *aggr, int *c
  *********************************************************************************/
 static const char	*sysfs_read_attr(const char *device, char **attribute)
 {
-	char	path[MAX_STRING_LEN], buf[ATTR_MAX], *p, **location;
+	char	path[MAX_STRING_LEN], path2[MAX_STRING_LEN], buf[ATTR_MAX], *p, **location;
 	FILE	*f;
 
 	for (location = locations; NULL != *location; location++)
 	{
 		zbx_snprintf(path, MAX_STRING_LEN, "%s%s/name", device, *location);
+		zbx_rootfs_path(path2, sizeof(path2), path);
 
-		if (NULL != (f = fopen(path, "r")))
+		if (NULL != (f = zbx_fopen(path2, "r")))
 		{
 			p = fgets(buf, ATTR_MAX, f);
 			zbx_fclose(f);
@@ -122,6 +126,7 @@ static const char	*sysfs_read_attr(const char *device, char **attribute)
 
 static int	get_device_info(const char *dev_path, const char *dev_name, char *device_info, const char **name_subfolder)
 {
+	char		path[MAX_STRING_LEN];
 	char		bus_path[MAX_STRING_LEN], linkpath[MAX_STRING_LEN], subsys_path[MAX_STRING_LEN];
 	char		*subsys, *prefix = NULL, *bus_attr = NULL;
 	const char	*bus_subfolder;
@@ -181,7 +186,8 @@ static int	get_device_info(const char *dev_path, const char *dev_name, char *dev
 		}
 		else
 		{
-			zbx_snprintf(bus_path, sizeof(bus_path), "/sys/class/i2c-adapter/i2c-%d", bus_i2c);
+			zbx_rootfs_path(path, sizeof(path), "/sys");
+			zbx_snprintf(bus_path, sizeof(bus_path), "%s/class/i2c-adapter/i2c-%d", path, bus_i2c);
 			bus_subfolder = sysfs_read_attr(bus_path, &bus_attr);
 
 			if (NULL != bus_subfolder && '\0' != *bus_subfolder)
@@ -257,11 +263,14 @@ out:
 static void	get_device_sensors(int do_task, const char *device, const char *name, double *aggr, int *cnt)
 {
 	char	sensorname[MAX_STRING_LEN];
+	char	path[MAX_STRING_LEN];
 
 #ifdef KERNEL_2_4
 	if (ZBX_DO_ONE == do_task)
 	{
-		zbx_snprintf(sensorname, sizeof(sensorname), "%s/%s/%s", DEVICE_DIR, device, name);
+		zbx_rootfs_path(path, sizeof(path), DEVICE_DIR);
+		zbx_snprintf(sensorname, sizeof(sensorname), "%s/%s/%s", path, device, name);
+
 		count_sensor(do_task, sensorname, aggr, cnt);
 	}
 	else
@@ -270,10 +279,12 @@ static void	get_device_sensors(int do_task, const char *device, const char *name
 		struct dirent	*deviceent, *sensorent;
 		char		devicename[MAX_STRING_LEN];
 
-		if (NULL == (devicedir = opendir(DEVICE_DIR)))
+		zbx_rootfs_path(path, sizeof(path), DEVICE_DIR);
+
+		if (NULL == (devicedir = zbx_opendir(path)))
 			return;
 
-		while (NULL != (deviceent = readdir(devicedir)))
+		while (NULL != (deviceent = zbx_readdir(devicedir)))
 		{
 			if (0 == strcmp(deviceent->d_name, ".") || 0 == strcmp(deviceent->d_name, ".."))
 				continue;
@@ -281,12 +292,12 @@ static void	get_device_sensors(int do_task, const char *device, const char *name
 			if (NULL == zbx_regexp_match(deviceent->d_name, device, NULL))
 				continue;
 
-			zbx_snprintf(devicename, sizeof(devicename), "%s/%s", DEVICE_DIR, deviceent->d_name);
+			zbx_snprintf(devicename, sizeof(devicename), "%s/%s", path, deviceent->d_name);
 
-			if (NULL == (sensordir = opendir(devicename)))
+			if (NULL == (sensordir = zbx_opendir(devicename)))
 				continue;
 
-			while (NULL != (sensorent = readdir(sensordir)))
+			while (NULL != (sensorent = zbx_readdir(sensordir)))
 			{
 				if (0 == strcmp(sensorent->d_name, ".") || 0 == strcmp(sensorent->d_name, ".."))
 					continue;
@@ -297,9 +308,9 @@ static void	get_device_sensors(int do_task, const char *device, const char *name
 				zbx_snprintf(sensorname, sizeof(sensorname), "%s/%s", devicename, sensorent->d_name);
 				count_sensor(do_task, sensorname, aggr, cnt);
 			}
-			closedir(sensordir);
+			zbx_closedir(sensordir);
 		}
-		closedir(devicedir);
+		zbx_closedir(devicedir);
 	}
 #else
 	DIR		*sensordir = NULL, *devicedir = NULL;
@@ -309,19 +320,20 @@ static void	get_device_sensors(int do_task, const char *device, const char *name
 	const char	*subfolder;
 	int		err, dev_len;
 
-	zbx_snprintf(hwmon_dir, sizeof(hwmon_dir), "%s", DEVICE_DIR);
+	zbx_rootfs_path(path, sizeof(path), DEVICE_DIR);
+	zbx_snprintf(hwmon_dir, sizeof(hwmon_dir), "%s", path);
 
-	if (NULL == (devicedir = opendir(hwmon_dir)))
+	if (NULL == (devicedir = zbx_opendir(hwmon_dir)))
 		return;
 
-	while (NULL != (deviceent = readdir(devicedir)))
+	while (NULL != (deviceent = zbx_readdir(devicedir)))
 	{
 		if (0 == strcmp(deviceent->d_name, ".") || 0 == strcmp(deviceent->d_name, ".."))
 			continue;
 
-		zbx_snprintf(devicepath, sizeof(devicepath), "%s/%s/device", DEVICE_DIR, deviceent->d_name);
+		zbx_snprintf(devicepath, sizeof(devicepath), "%s/%s/device", path, deviceent->d_name);
 		dev_len = readlink(devicepath, deviced, MAX_STRING_LEN - 1);
-		zbx_snprintf(devicepath, sizeof(devicepath), "%s/%s", DEVICE_DIR, deviceent->d_name);
+		zbx_snprintf(devicepath, sizeof(devicepath), "%s/%s", path, deviceent->d_name);
 
 		if (0 > dev_len)
 		{
@@ -344,7 +356,7 @@ static void	get_device_sensors(int do_task, const char *device, const char *name
 
 		if (SUCCEED == err && 0 == strcmp(device_info, device))
 		{
-			zbx_snprintf(devicepath, sizeof(devicepath), "%s/%s%s", DEVICE_DIR, deviceent->d_name,
+			zbx_snprintf(devicepath, sizeof(devicepath), "%s/%s%s", path, deviceent->d_name,
 					subfolder);
 
 			if (ZBX_DO_ONE == do_task)
@@ -356,10 +368,10 @@ static void	get_device_sensors(int do_task, const char *device, const char *name
 			{
 				zbx_snprintf(regex, sizeof(regex), "%s[0-9]*_input", name);
 
-				if (NULL == (sensordir = opendir(devicepath)))
+				if (NULL == (sensordir = zbx_opendir(devicepath)))
 					goto out;
 
-				while (NULL != (sensorent = readdir(sensordir)))
+				while (NULL != (sensorent = zbx_readdir(sensordir)))
 				{
 					if (0 == strcmp(sensorent->d_name, ".") ||
 							0 == strcmp(sensorent->d_name, ".."))
@@ -372,12 +384,12 @@ static void	get_device_sensors(int do_task, const char *device, const char *name
 							sensorent->d_name);
 					count_sensor(do_task, sensorname, aggr, cnt);
 				}
-				closedir(sensordir);
+				zbx_closedir(sensordir);
 			}
 		}
 	}
 out:
-	closedir(devicedir);
+	zbx_closedir(devicedir);
 #endif
 }
 

@@ -266,13 +266,13 @@ static int	parse_cfg_dir(const char *path, const char *pattern, struct cfg_line 
 	char		*file = NULL;
 	int		ret = FAIL;
 
-	if (NULL == (dir = opendir(path)))
+	if (NULL == (dir = zbx_opendir(path)))
 	{
 		zbx_error("%s: %s", path, zbx_strerror(errno));
 		goto out;
 	}
 
-	while (NULL != (d = readdir(dir)))
+	while (NULL != (d = zbx_readdir(dir)))
 	{
 		file = zbx_dsprintf(file, "%s/%s", path, d->d_name);
 
@@ -288,7 +288,7 @@ static int	parse_cfg_dir(const char *path, const char *pattern, struct cfg_line 
 
 	ret = SUCCEED;
 close:
-	if (0 != closedir(dir))
+	if (0 != zbx_closedir(dir))
 	{
 		zbx_error("%s: %s", path, zbx_strerror(errno));
 		ret = FAIL;
@@ -391,17 +391,9 @@ static int	__parse_cfg_file(const char *cfg_file, struct cfg_line *cfg, int leve
 
 	if (NULL != cfg_file)
 	{
-#ifdef _WINDOWS
-		wcfg_file = zbx_utf8_to_unicode(cfg_file);
-		file = _wfopen(wcfg_file, L"r");
-		zbx_free(wcfg_file);
+		if (NULL == (file = zbx_fopen(cfg_file, "r")))
+			goto cannot_open;
 
-		if (NULL == file)
-			goto cannot_open;
-#else
-		if (NULL == (file = fopen(cfg_file, "r")))
-			goto cannot_open;
-#endif
 		for (lineno = 1; NULL != fgets(line, sizeof(line), file); lineno++)
 		{
 			/* check if line length exceeds limit (max. 2048 bytes) */
@@ -434,7 +426,7 @@ static int	__parse_cfg_file(const char *cfg_file, struct cfg_line *cfg, int leve
 			{
 				if (FAIL == parse_cfg_object(value, cfg, level, strict))
 				{
-					fclose(file);
+					zbx_fclose(file);
 					goto error;
 				}
 
@@ -491,7 +483,7 @@ static int	__parse_cfg_file(const char *cfg_file, struct cfg_line *cfg, int leve
 			if (0 == param_valid && ZBX_CFG_STRICT == strict)
 				goto unknown_parameter;
 		}
-		fclose(file);
+		zbx_fclose(file);
 	}
 
 	if (1 != level)	/* skip mandatory parameters check for included files */
@@ -525,24 +517,24 @@ cannot_open:
 	zbx_error("cannot open config file \"%s\": %s", cfg_file, zbx_strerror(errno));
 	goto error;
 line_too_long:
-	fclose(file);
+	zbx_fclose(file);
 	zbx_error("line %d exceeds %d byte length limit in config file \"%s\"", lineno, MAX_STRING_LEN, cfg_file);
 	goto error;
 non_utf8:
-	fclose(file);
+	zbx_fclose(file);
 	zbx_error("non-UTF-8 character at line %d \"%s\" in config file \"%s\"", lineno, line, cfg_file);
 	goto error;
 non_key_value:
-	fclose(file);
+	zbx_fclose(file);
 	zbx_error("invalid entry \"%s\" (not following \"parameter=value\" notation) in config file \"%s\", line %d",
 			line, cfg_file, lineno);
 	goto error;
 incorrect_config:
-	fclose(file);
+	zbx_fclose(file);
 	zbx_error("wrong value of \"%s\" in config file \"%s\", line %d", cfg[i].parameter, cfg_file, lineno);
 	goto error;
 unknown_parameter:
-	fclose(file);
+	zbx_fclose(file);
 	zbx_error("unknown parameter \"%s\" in config file \"%s\", line %d", parameter, cfg_file, lineno);
 	goto error;
 missing_mandatory:

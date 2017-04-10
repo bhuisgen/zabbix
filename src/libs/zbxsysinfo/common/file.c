@@ -30,6 +30,9 @@ extern int	CONFIG_TIMEOUT;
 
 int	VFS_FILE_SIZE(AGENT_REQUEST *request, AGENT_RESULT *result)
 {
+#ifndef _WINDOWS
+	char		path[MAX_STRING_LEN];
+#endif
 	zbx_stat_t	buf;
 	char		*filename;
 	int		ret = SYSINFO_RET_FAIL;
@@ -48,7 +51,14 @@ int	VFS_FILE_SIZE(AGENT_REQUEST *request, AGENT_RESULT *result)
 		goto err;
 	}
 
+#ifndef _WINDOWS
+	zbx_rootfs_path(path, sizeof(path), filename);
+
+	filename = path;
+#endif
+
 	if (0 != zbx_stat(filename, &buf))
+
 	{
 		SET_MSG_RESULT(result, zbx_dsprintf(NULL, "Cannot obtain file information: %s", zbx_strerror(errno)));
 		goto err;
@@ -63,6 +73,9 @@ err:
 
 int	VFS_FILE_TIME(AGENT_REQUEST *request, AGENT_RESULT *result)
 {
+#ifndef _WINDOWS
+	char		path[MAX_STRING_LEN];
+#endif
 	zbx_stat_t	buf;
 	char		*filename, *type;
 	int		ret = SYSINFO_RET_FAIL;
@@ -81,6 +94,12 @@ int	VFS_FILE_TIME(AGENT_REQUEST *request, AGENT_RESULT *result)
 		SET_MSG_RESULT(result, zbx_strdup(NULL, "Invalid first parameter."));
 		goto err;
 	}
+
+#ifndef _WINDOWS
+	zbx_rootfs_path(path, sizeof(path), filename);
+
+	filename = path;
+#endif
 
 	if (0 != zbx_stat(filename, &buf))
 	{
@@ -107,6 +126,9 @@ err:
 
 int	VFS_FILE_EXISTS(AGENT_REQUEST *request, AGENT_RESULT *result)
 {
+#ifndef _WINDOWS
+	char		path[MAX_STRING_LEN];
+#endif
 	zbx_stat_t	buf;
 	char		*filename;
 	int		ret = SYSINFO_RET_FAIL, file_exists;
@@ -124,6 +146,12 @@ int	VFS_FILE_EXISTS(AGENT_REQUEST *request, AGENT_RESULT *result)
 		SET_MSG_RESULT(result, zbx_strdup(NULL, "Invalid first parameter."));
 		goto err;
 	}
+
+#ifndef _WINDOWS
+	zbx_rootfs_path(path, sizeof(path), filename);
+
+	filename = path;
+#endif
 
 	if (0 == zbx_stat(filename, &buf))
 	{
@@ -147,6 +175,9 @@ err:
 
 int	VFS_FILE_CONTENTS(AGENT_REQUEST *request, AGENT_RESULT *result)
 {
+#ifndef _WINDOWS
+	char		path[MAX_STRING_LEN];
+#endif
 	char		*filename, *tmp, encoding[32];
 	char		read_buf[MAX_BUFFER_LEN], *utf8, *contents = NULL;
 	size_t		contents_alloc = 0, contents_offset = 0;
@@ -175,6 +206,12 @@ int	VFS_FILE_CONTENTS(AGENT_REQUEST *request, AGENT_RESULT *result)
 		SET_MSG_RESULT(result, zbx_strdup(NULL, "Invalid first parameter."));
 		goto err;
 	}
+
+#ifndef _WINDOWS
+	zbx_rootfs_path(path, sizeof(path), filename);
+
+	filename = path;
+#endif
 
 	if (0 != zbx_stat(filename, &stat_buf))
 	{
@@ -248,13 +285,16 @@ int	VFS_FILE_CONTENTS(AGENT_REQUEST *request, AGENT_RESULT *result)
 	ret = SYSINFO_RET_OK;
 err:
 	if (-1 != f)
-		close(f);
+		zbx_close(f);
 
 	return ret;
 }
 
 int	VFS_FILE_REGEXP(AGENT_REQUEST *request, AGENT_RESULT *result)
 {
+#ifndef _WINDOWS
+	char		path[MAX_STRING_LEN];
+#endif
 	char		*filename, *regexp, encoding[32], *output, *start_line_str, *end_line_str;
 	char		buf[MAX_BUFFER_LEN], *utf8, *tmp, *ptr = NULL;
 	int		nbytes, f = -1, ret = SYSINFO_RET_FAIL;
@@ -315,6 +355,12 @@ int	VFS_FILE_REGEXP(AGENT_REQUEST *request, AGENT_RESULT *result)
 		goto err;
 	}
 
+#ifndef _WINDOWS
+	zbx_rootfs_path(path, sizeof(path), filename);
+
+	filename = path;
+#endif
+
 	if (-1 == (f = zbx_open(filename, O_RDONLY)))
 	{
 		SET_MSG_RESULT(result, zbx_dsprintf(NULL, "Cannot open file: %s", zbx_strerror(errno)));
@@ -369,13 +415,16 @@ int	VFS_FILE_REGEXP(AGENT_REQUEST *request, AGENT_RESULT *result)
 	ret = SYSINFO_RET_OK;
 err:
 	if (-1 != f)
-		close(f);
+		zbx_close(f);
 
 	return ret;
 }
 
 int	VFS_FILE_REGMATCH(AGENT_REQUEST *request, AGENT_RESULT *result)
 {
+#ifndef _WINDOWS
+	char		path[MAX_STRING_LEN];
+#endif
 	char		*filename, *regexp, *tmp, encoding[32];
 	char		buf[MAX_BUFFER_LEN], *utf8, *start_line_str, *end_line_str;
 	int		nbytes, res, f = -1, ret = SYSINFO_RET_FAIL;
@@ -435,6 +484,12 @@ int	VFS_FILE_REGMATCH(AGENT_REQUEST *request, AGENT_RESULT *result)
 		goto err;
 	}
 
+#ifndef _WINDOWS
+	zbx_rootfs_path(path, sizeof(path), filename);
+
+	filename = path;
+#endif
+
 	if (-1 == (f = zbx_open(filename, O_RDONLY)))
 	{
 		SET_MSG_RESULT(result, zbx_dsprintf(NULL, "Cannot open file: %s", zbx_strerror(errno)));
@@ -481,13 +536,16 @@ int	VFS_FILE_REGMATCH(AGENT_REQUEST *request, AGENT_RESULT *result)
 	ret = SYSINFO_RET_OK;
 err:
 	if (-1 != f)
-		close(f);
+		zbx_close(f);
 
 	return ret;
 }
 
 int	VFS_FILE_MD5SUM(AGENT_REQUEST *request, AGENT_RESULT *result)
 {
+#ifndef _WINDOWS
+	char		path[MAX_STRING_LEN];
+#endif
 	char		*filename;
 	int		i, nbytes, f = -1, ret = SYSINFO_RET_FAIL;
 	md5_state_t	state;
@@ -512,6 +570,12 @@ int	VFS_FILE_MD5SUM(AGENT_REQUEST *request, AGENT_RESULT *result)
 		SET_MSG_RESULT(result, zbx_strdup(NULL, "Invalid first parameter."));
 		goto err;
 	}
+
+#ifndef _WINDOWS
+	zbx_rootfs_path(path, sizeof(path), filename);
+
+	filename = path;
+#endif
 
 	if (-1 == (f = zbx_open(filename, O_RDONLY)))
 	{
@@ -561,7 +625,7 @@ int	VFS_FILE_MD5SUM(AGENT_REQUEST *request, AGENT_RESULT *result)
 	ret = SYSINFO_RET_OK;
 err:
 	if (-1 != f)
-		close(f);
+		zbx_close(f);
 
 	return ret;
 }
@@ -629,6 +693,9 @@ static u_long	crctab[] =
  ******************************************************************************/
 int	VFS_FILE_CKSUM(AGENT_REQUEST *request, AGENT_RESULT *result)
 {
+#ifndef _WINDOWS
+	char		path[MAX_STRING_LEN];
+#endif
 	char		*filename;
 	int		i, nr, f = -1, ret = SYSINFO_RET_FAIL;
 	zbx_uint32_t	crc, flen;
@@ -651,6 +718,12 @@ int	VFS_FILE_CKSUM(AGENT_REQUEST *request, AGENT_RESULT *result)
 		SET_MSG_RESULT(result, zbx_strdup(NULL, "Invalid first parameter."));
 		goto err;
 	}
+
+#ifndef _WINDOWS
+	zbx_rootfs_path(path, sizeof(path), filename);
+
+	filename = path;
+#endif
 
 	if (-1 == (f = zbx_open(filename, O_RDONLY)))
 	{
@@ -697,7 +770,7 @@ int	VFS_FILE_CKSUM(AGENT_REQUEST *request, AGENT_RESULT *result)
 	ret = SYSINFO_RET_OK;
 err:
 	if (-1 != f)
-		close(f);
+		zbx_close(f);
 
 	return ret;
 }

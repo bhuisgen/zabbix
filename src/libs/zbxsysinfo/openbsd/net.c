@@ -198,7 +198,7 @@ static int	get_ifdata(const char *if_name,
 		ret = SYSINFO_RET_OK;
 clean:
 		if (if_s >= 0)
-			close(if_s);
+			zbx_close(if_s);
 	}
 
 	return ret;

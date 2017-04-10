@@ -59,6 +59,7 @@ char	**CONFIG_PERF_COUNTERS		= NULL;
 #endif
 
 char	*CONFIG_USER			= NULL;
+char	*CONFIG_ROOT_FILESYSTEM	= NULL;
 
 /* TLS parameters */
 unsigned int	configured_tls_connect_mode = ZBX_TCP_SEC_UNENCRYPTED;

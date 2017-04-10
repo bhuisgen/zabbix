@@ -747,6 +747,8 @@ static void	zbx_load_config(int requirement, ZBX_TASK_EX *task)
 			PARM_OPT,	0,			1},
 		{"User",			&CONFIG_USER,				TYPE_STRING,
 			PARM_OPT,	0,			0},
+		{"RootFilesystem",		&CONFIG_ROOT_FILESYSTEM,		TYPE_STRING,
+			PARM_OPT,	0,			0},
 #endif
 #ifdef _WINDOWS
 		{"PerfCounter",			&CONFIG_PERF_COUNTERS,			TYPE_MULTISTRING,
